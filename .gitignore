@@ -1,0 +1,5 @@
+# Godot 4 editor cache/import data — fully regenerated from source, never hand-edited.
+.godot/
+
+# Exported build artifacts (APK etc.) — regenerated from source via Godot's exporter.
+Export/

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "godot-mcp": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/c9104/Downloads/Godot simulation/tools/godot-mcp/dist/index.js",
+        "--project",
+        "C:/Users/c9104/Downloads/Godot simulation/tetris-battle",
+        "--port",
+        "6551"
+      ]
+    }
+  }
+}

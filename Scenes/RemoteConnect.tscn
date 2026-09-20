@@ -1,0 +1,340 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Script/RemoteConnect.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.16, 0.16, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.3, 0.68, 0.4, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+shadow_color = Color(0, 0, 0, 0.12)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyleDisabled"]
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="FieldStyle"]
+bg_color = Color(0.1, 0.1, 0.11, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.35, 0.37, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="RemoteConnect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(640, 560)
+layout_mode = 2
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Margin" type="MarginContainer" parent="CenterContainer/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Layout" type="VBoxContainer" parent="CenterContainer/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TopBar" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Layout"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "遠端連線"
+
+[node name="BackButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/TopBar"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "返回"
+
+[node name="ModeRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BecomeServerButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/ModeRow"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "成為伺服器
+（電腦專用）"
+
+[node name="ConnectServerButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/ModeRow"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "連結伺服器
+（認領房主）"
+
+[node name="JoinRemoteButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/ModeRow"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "加入遠端連線"
+
+[node name="BecomeServerSection" type="VBoxContainer" parent="CenterContainer/Panel/Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="InfoRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RegisterInfoLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/InfoRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 2
+text = "需要一組免費的 playit.gg 帳號才能架設橋接站。"
+
+[node name="HelpButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/InfoRow"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "？"
+
+[node name="RegisterLinkButton" type="LinkButton" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection"]
+layout_mode = 2
+text = "還沒有帳號？前往 playit.gg 註冊"
+uri = "https://playit.gg"
+
+[node name="LoginButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "登入"
+
+[node name="LoginStatusRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LogoutButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/LoginStatusRow"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "登出"
+
+[node name="LoginStatusLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/LoginStatusRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 2
+text = ""
+
+[node name="PostLoginSection" type="VBoxContainer" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AddressLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "連線位址（給房主用，可複製）"
+
+[node name="AddressEdit" type="LineEdit" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/read_only = SubResource("FieldStyle")
+placeholder_text = "尚未建立通道"
+editable = false
+virtual_keyboard_enabled = false
+
+[node name="OwnerCodeLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "房主代碼（給要當房主的人）"
+
+[node name="OwnerCodeEdit" type="LineEdit" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/focus = SubResource("FieldStyle")
+placeholder_text = "自訂一組代碼"
+max_length = 20
+virtual_keyboard_enabled = false
+
+[node name="ActionRow" type="HBoxContainer" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StartServerButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection/ActionRow"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "開啟
+（等待遠端房主）"
+
+[node name="HostMyselfButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/BecomeServerSection/PostLoginSection/ActionRow"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "自己開房間"
+
+[node name="ConnectServerSection" type="VBoxContainer" parent="CenterContainer/Panel/Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AddressLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/ConnectServerSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "連線位址（host:port）"
+
+[node name="AddressEdit" type="LineEdit" parent="CenterContainer/Panel/Margin/Layout/ConnectServerSection"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/focus = SubResource("FieldStyle")
+placeholder_text = "例如 xxx.playit.gg:12345"
+max_length = 64
+virtual_keyboard_enabled = false
+
+[node name="OwnerCodeLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/ConnectServerSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "房主代碼"
+
+[node name="OwnerCodeEdit" type="LineEdit" parent="CenterContainer/Panel/Margin/Layout/ConnectServerSection"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/focus = SubResource("FieldStyle")
+placeholder_text = "輸入代碼"
+max_length = 20
+virtual_keyboard_enabled = false
+
+[node name="ConnectConfirmButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/ConnectServerSection"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "連線"
+
+[node name="JoinRemoteSection" type="VBoxContainer" parent="CenterContainer/Panel/Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AddressLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/JoinRemoteSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "連線位址（host:port）"
+
+[node name="AddressEdit" type="LineEdit" parent="CenterContainer/Panel/Margin/Layout/JoinRemoteSection"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/focus = SubResource("FieldStyle")
+placeholder_text = "例如 xxx.playit.gg:12345"
+max_length = 64
+virtual_keyboard_enabled = false
+
+[node name="PasswordLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout/JoinRemoteSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "房間密碼（沒有就留空）"
+
+[node name="PasswordEdit" type="LineEdit" parent="CenterContainer/Panel/Margin/Layout/JoinRemoteSection"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/focus = SubResource("FieldStyle")
+placeholder_text = "4 位數字，選填"
+max_length = 4
+virtual_keyboard_enabled = false
+
+[node name="JoinConfirmButton" type="Button" parent="CenterContainer/Panel/Margin/Layout/JoinRemoteSection"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "加入"
+
+[node name="StatusLabel" type="Label" parent="CenterContainer/Panel/Margin/Layout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2

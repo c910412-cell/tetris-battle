@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[node name="Board" type="Node2D"]
+
+[node name="PlaceholderLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 640.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 28
+text = "俄羅斯方塊對戰 — 盤面畫面尚未實作
+（連線骨架已經可以跑通開房/搜尋/加入/準備/開始，這個場景是佔位）"

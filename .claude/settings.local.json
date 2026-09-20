@@ -1,0 +1,88 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__godot-mcp__*",
+      "Skill"
+    ],
+    "ask": [
+      "mcp__godot-mcp__godot_remove_node",
+      "mcp__godot-mcp__godot_editor_remove_node",
+      "mcp__godot-mcp__godot_audio_remove_bus",
+      "mcp__godot-mcp__godot_input_remove_action",
+      "mcp__godot-mcp__godot_animation_remove_keyframe",
+      "mcp__godot-mcp__godot_init_project"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Add-Type -AssemblyName System.Windows.Forms; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.Visible = $true; $n.ShowBalloonTip(5000, 'Claude Code', '俄羅斯方塊對戰: 回應已完成', [System.Windows.Forms.ToolTipIcon]::Info); Start-Sleep -Seconds 6; $n.Dispose()",
+            "async": true,
+            "timeout": 15,
+            "statusMessage": "Sending desktop notification..."
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Add-Type -AssemblyName System.Windows.Forms; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Warning; $n.Visible = $true; $n.ShowBalloonTip(8000, 'Claude Code', '俄羅斯方塊對戰: 需要你的確認/回覆', [System.Windows.Forms.ToolTipIcon]::Warning); Start-Sleep -Seconds 9; $n.Dispose()",
+            "async": true,
+            "timeout": 15,
+            "statusMessage": "Sending desktop notification..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Add-Type -AssemblyName System.Windows.Forms; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Warning; $n.Visible = $true; $n.ShowBalloonTip(8000, 'Claude Code', '俄羅斯方塊對戰: 有問題需要你討論/選擇', [System.Windows.Forms.ToolTipIcon]::Warning); Start-Sleep -Seconds 9; $n.Dispose()",
+            "async": true,
+            "timeout": 15,
+            "statusMessage": "Sending desktop notification..."
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Add-Type -AssemblyName System.Windows.Forms; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Warning; $n.Visible = $true; $n.ShowBalloonTip(8000, 'Claude Code', '俄羅斯方塊對戰: 計劃已提出,等你確認', [System.Windows.Forms.ToolTipIcon]::Warning); Start-Sleep -Seconds 9; $n.Dispose()",
+            "async": true,
+            "timeout": 15,
+            "statusMessage": "Sending desktop notification..."
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Add-Type -AssemblyName System.Windows.Forms; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Warning; $n.Visible = $true; $n.ShowBalloonTip(8000, 'Claude Code', '俄羅斯方塊對戰: 有權限請求等你確認', [System.Windows.Forms.ToolTipIcon]::Warning); Start-Sleep -Seconds 9; $n.Dispose()",
+            "async": true,
+            "timeout": 15,
+            "statusMessage": "Sending desktop notification..."
+          }
+        ]
+      }
+    ]
+  }
+}
