@@ -53,7 +53,14 @@
 extends Node2D
 
 const DAS_SEC := 0.2
-const ARR_SEC := 0.05
+## 2026-09-23 使用者回報手機端左右移動（按住不放的連續移動）感覺太慢——這個
+## 是按住之後每一格之間的間隔，數字越小移動越快；手勢
+## （TetrisGestureMoveZone.gd）本來就是靠 Input.action_press() 接到跟按鈕
+## 完全同一套 DAS/ARR 輪詢邏輯（見該檔案開頭的說明），這裡改一次兩邊會一起
+## 變快，不用分開調。原本 0.05 先調快到 0.03，不夠快/太快之後再依回饋繼續
+## 調（跟 TetrisGameController.SOFT_DROP_GRAVITY_SEC 當初的調法一樣,見該
+## 常數的說明——同一種手感問題，之前也是分好幾輪才調到使用者滿意的值）。
+const ARR_SEC := 0.03
 const COUNTDOWN_SECONDS := 3.0
 
 ## HUD 文字 2026-09-22 起併回 BattleLayoutPortrait/Landscape.tscn 跟棋盤/按鈕

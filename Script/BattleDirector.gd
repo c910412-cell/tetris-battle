@@ -143,8 +143,22 @@ func tick(delta: float) -> void:
 		if participant.ai:
 			participant.ai.decide_and_act(delta)
 
-	## 目標重骰/垃圾行結算/回合勝負判定全部是 host 權威（見 _is_host_authority
-	## 說明）——非權威裝置這裡直接跳過,等網路廣播套用權威裝置算出來的結果。
+	## 2026-09-23 使用者回報：連結端（非權威裝置）的結算倒數條完全不會動——
+	## 根因是 get_settlement_progress() 純粹讀本機的 _settlement_timer,是每
+	## 台裝置自己畫自己的（不是靠網路同步畫面),但這個計時器原本整段都在
+	## 「只有權威裝置才會執行」的區塊裡,非權威裝置的 _settlement_timer 永遠
+	## 停在 0,倒數條當然不會動。改成：計時本身（純顯示用途）每台裝置都自己
+	## 走,保持跟權威裝置大致同步；但「時間到了要不要真的結算」這個判斷
+	## （_settle_all()）仍然只有權威裝置會做,非權威裝置這裡計時器歸零純粹是
+	## 讓倒數條重新跑一輪,不會誤觸發真正的結算。
+	_settlement_timer += delta
+	if _settlement_timer >= BattleSettings.settlement_seconds:
+		_settlement_timer = 0.0
+		if _is_host_authority:
+			_settle_all()
+
+	## 目標重骰/回合勝負判定是 host 權威（見 _is_host_authority 說明）——非
+	## 權威裝置這裡直接跳過,等網路廣播套用權威裝置算出來的結果。
 	if not _is_host_authority:
 		return
 
@@ -155,11 +169,6 @@ func tick(delta: float) -> void:
 			var participant: BattleParticipant = participants[participant_id]
 			if not participant.is_eliminated and not participant.is_disconnected and not participant.manual_target_locked:
 				_retarget(participant)
-
-	_settlement_timer += delta
-	if _settlement_timer >= BattleSettings.settlement_seconds:
-		_settlement_timer = 0.0
-		_settle_all()
 
 func get_settlement_progress() -> float:
 	return clampf(_settlement_timer / maxf(BattleSettings.settlement_seconds, 0.01), 0.0, 1.0)

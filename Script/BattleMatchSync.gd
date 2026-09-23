@@ -196,16 +196,33 @@ func _on_pending_counts_changed() -> void:
 	print("[Sync] _on_pending_counts_changed -> broadcast _sync_pending_counts.rpc(%s)" % str(counts))
 	_sync_pending_counts.rpc(counts)
 
-## 非本機模擬的參與者收到的只是「數量」，不是真的缺口欄位——他們的
-## pending_garbage 在這台裝置上只用來顯示點點數（OpponentPanel.gd 讀
-## .size()），不會被拿去真的 inject_garbage()（那個只有本機模擬那一方會做，
-## 見 BattleDirector._settle_all()/apply_injected_garbage()），填什麼值都
-## 無所謂，只要長度對就好。
+## 2026-09-23 修正實機回報的兩個問題,根因都在這個函式：
+## (1) 「連結端自己看不到自己的待定點點」——原本用 participant.is_local 判斷
+##     要不要更新,理由寫的是「非本機模擬的參與者只需要數量」,但這個判斷條件
+##     搞混了兩件事：is_local 指的是「這個參與者的真正棋盤是不是這台裝置在
+##     模擬」,不代表「這台裝置本來就有這個參與者正確的 pending_garbage
+##     資料」——pending_garbage 的累積（_apply_attack()）只會在權威裝置上
+##     跑,非權威裝置不管是看別人還是看自己,都要靠這個廣播才知道正確數量,
+##     原本的 is_local 排除條件反而把「自己」這個最需要更新的對象排除掉了。
+## (2) 「垃圾根本沒有真的疊上盤面」——這個函式是 call_local,權威裝置自己
+##     廣播出去也會執行到這裡；權威裝置對「不是本機模擬」的參與者（也就是
+##     其他真人)一樣會走進迴圈,用 arr.resize() 產生的「只有長度、內容是
+##     null」的假陣列直接覆蓋掉 participant.pending_garbage——而這個
+##     participant 物件跟 _apply_attack() 剛剛寫入真正缺口欄位資料的物件是
+##     同一個(權威裝置只有一份 director),等於權威裝置自己把自己剛算好的
+##     真正資料，立刻用假資料蓋掉,_settle_all() 之後拿到的就是壞資料。
+## 修正：整個函式只在「非權威裝置」上生效（權威裝置自己的資料本來就是正確
+## 來源,不需要也不能被這個廣播覆寫）,而且不排除 is_local,所有參與者
+## （包含自己）都更新——反正非權威裝置的 pending_garbage 本來就只拿來顯示
+## 點點數量用,不會被拿去真的 inject_garbage()（那個由權威裝置決定要不要
+## 轉送,見 remote_garbage_ready 的說明），填什麼值都無所謂,只要長度對就好。
 @rpc("authority", "call_local", "reliable")
 func _sync_pending_counts(counts: Dictionary) -> void:
+	if _is_host_authority:
+		return
 	for pid in counts:
 		var participant: BattleParticipant = _director.participants.get(pid)
-		if participant == null or participant.is_local:
+		if participant == null:
 			continue
 		var arr: Array = []
 		arr.resize(int(counts[pid]))
