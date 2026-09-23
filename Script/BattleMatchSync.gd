@@ -60,6 +60,16 @@ var _round_number: int = 0
 ## 無縫接軌（那個要做的事情很多,之後真的需要再回來做完整版）。
 var _disconnected_at_round: Dictionary = {}
 
+## host 端專用：目前還在斷線暫停中、還沒重連回來的人（participant_id ->
+## true）。2026-09-23 使用者回報：淘汰的灰階畫面在斷線的人身上「進到下一輪
+## 就恢復正常」——根因是每次 bind_director() 換綁的是全新的 BattleDirector，
+## 新的 BattleParticipant 一律從 is_disconnected=false 開始（見
+## BattleDirector._init()，完全沒有「這個人上一輪就已經斷線、還沒接回來」
+## 的概念）。這份記錄跨輪次持續存在（不會因為換 director 就清空），成功重連
+## 才會在 _on_match_reconnect_claimed() 清掉,bind_director() 換綁新一輪時
+## 拿來把還沒回來的人重新標記回 is_disconnected=true。
+var _still_disconnected: Dictionary = {}
+
 func _ready() -> void:
 	NetworkManager.match_peer_disconnected.connect(_on_network_peer_disconnected)
 	NetworkManager.match_reconnect_claimed.connect(_on_match_reconnect_claimed)
@@ -83,6 +93,16 @@ func bind_director(director: BattleDirector, is_host_authority: bool, local_part
 	director.elimination_report_needed.connect(_on_elimination_report_needed)
 	director.elimination_synced.connect(_on_elimination_synced)
 	director.round_ended.connect(_on_round_ended)
+
+	## 把還沒重連回來的人重新標記成斷線（見 _still_disconnected 的說明）——
+	## 只有 host 權威裝置需要做這件事並廣播出去,其他裝置等這個廣播套用就好,
+	## 不用自己重複判斷（新一輪剛綁定,其他裝置的 _director 這時也已經是新的
+	## 了,收到 _sync_disconnected 時 _director 不會是 null）。
+	if _is_host_authority:
+		for pid in _still_disconnected:
+			if director.participants.has(pid):
+				director.set_participant_disconnected(pid, true)
+				_sync_disconnected.rpc(pid, true)
 
 ## 這個 RPC 的送出者「現在」代表哪個 participant_id——預設是身分對照（沒有
 ## 重連過的一般連線,真實 peer id 就是 participant id 本身),重連過的話查
@@ -247,6 +267,7 @@ func _on_network_peer_disconnected(peer_id: int) -> void:
 		return
 	_director.set_participant_disconnected(participant_id, true)
 	_disconnected_at_round[participant_id] = _round_number
+	_still_disconnected[participant_id] = true
 	_sync_disconnected.rpc(participant_id, true)
 
 @rpc("authority", "reliable")
@@ -283,6 +304,7 @@ func _on_match_reconnect_claimed(new_peer_id: int, claimed_participant_id: int) 
 		return
 	_real_peer_to_participant[new_peer_id] = claimed_participant_id
 	_participant_to_real_peer[claimed_participant_id] = new_peer_id
+	_still_disconnected.erase(claimed_participant_id)
 	_director.set_participant_disconnected(claimed_participant_id, false)
 	_sync_disconnected.rpc(claimed_participant_id, false)
 	if not participant.is_eliminated:

@@ -872,8 +872,19 @@ func _do_end_match() -> void:
 		return
 	_match_started = false
 	BattleSettings.network_match_seed = 0
-	for peer_id in _peer_ready:
-		_peer_ready[peer_id] = false
+	# 2026-09-23 使用者回報：對戰中途斷線、沒有重連回來的人（見
+	# match_peer_disconnected 的說明：對戰中斷線刻意不清 _peer_ready,是為了
+	# 讓他有機會重連回同一場對局)一旦這場對局真的結束了,如果他們沒有回來,
+	# 早就不是真正還連著的人了——原本這裡只是把所有值重設成 false,不會清掉
+	# 任何 key,這些人會永遠卡在房間人數/玩家列表裡占位置,即使他已經關掉
+	# 遊戲。用 multiplayer.get_peers()（目前真的還連著的 ENet peer id)過濾,
+	# 不在裡面的一律移除。
+	var live_peers := multiplayer.get_peers()
+	for peer_id in _peer_ready.keys():
+		if not live_peers.has(peer_id):
+			_peer_ready.erase(peer_id)
+		else:
+			_peer_ready[peer_id] = false
 	_broadcast_room_state()
 	# 開始比賽時關掉了廣播 socket，這裡要重新打開，房間才會再次出現在其他
 	# 人的搜尋列表裡（「房間再次開放」）。

@@ -405,8 +405,20 @@ func _on_max_players_option_changed(index: int) -> void:
 	max_players_option_landscape.selected = index
 	_apply_local_settings_to_network()
 
+## 2026-09-23 使用者回報：新加入房間的玩家跟已經在房間裡的人,看到的對戰
+## 規則（BattleSettings 那 10 條，AI 等級/傷害倍率/這次新加的「清 1 行也算
+## 攻擊力」等）沒有同步——根因是 BattleSettings.sync_room_rules() 只在房主
+## 「改動」某個設定時才會廣播,新玩家加入房間時沒有人會主動推送一次目前的
+## 設定給他,他那台裝置上的 BattleSettings 就會停留在自己過去某一場對局
+## 留下的舊值（或純本機預設值）,直到房主剛好又手動改了一次設定才會第一次
+## 收到廣播。這裡改成：房主端每次房間狀態有任何變化（包含新玩家加入,見
+## NetworkManager.room_state_updated 的觸發時機)就重新推送一次目前的設定,
+## 保證新加入的人一定拿得到最新值,不用等房主剛好去改設定。非房主/單機這裡
+## 呼叫沒有作用（sync_room_rules() 內部本來就會擋掉,見該函式說明）。
 func _refresh_from_state() -> void:
 	_apply_owner_mode_ui()
+	if _is_owner:
+		BattleSettings.sync_room_rules()
 	if not _is_owner:
 		var map_index := 0
 		for i in MAP_OPTIONS.size():

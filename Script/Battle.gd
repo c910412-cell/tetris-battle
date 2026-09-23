@@ -480,10 +480,14 @@ func _show_pause_layer() -> void:
 	if not BattleSettings.is_solo_mode:
 		_update_vote_dots(0, _real_participant_count())
 
+## 2026-09-23 使用者需求：離開投票的「過半數」門檻要跟著目前真的還在線上的
+## 人數浮動——中途斷線的人不該繼續佔在分母裡（他既不能投票、也不該讓其他人
+## 更難湊出過半數）。
 func _real_participant_count() -> int:
 	var count := 0
 	for pid in _director.participants:
-		if not BattleSettings.is_ai(pid):
+		var participant: BattleParticipant = _director.participants[pid]
+		if not BattleSettings.is_ai(pid) and not participant.is_disconnected:
 			count += 1
 	return count
 
