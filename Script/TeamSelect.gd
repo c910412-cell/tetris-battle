@@ -34,6 +34,8 @@ const CellScript := preload("res://Script/TeamSelectCell.gd")
 @onready var grid_landscape: GridContainer = $LandscapeLayout/TeamGrid
 @onready var start_button_portrait: Button = $PortraitLayout/StartButton
 @onready var start_button_landscape: Button = $LandscapeLayout/StartButton
+@onready var ready_button_portrait: Button = $PortraitLayout/ReadyButton
+@onready var ready_button_landscape: Button = $LandscapeLayout/ReadyButton
 @onready var back_button_portrait: Button = $PortraitLayout/BackButton
 @onready var back_button_landscape: Button = $LandscapeLayout/BackButton
 @onready var status_label_portrait: Label = $PortraitLayout/StatusLabel
@@ -42,9 +44,15 @@ const CellScript := preload("res://Script/TeamSelectCell.gd")
 var _cells_portrait: Array = []
 var _cells_landscape: Array = []
 var _local_peer_id: int = 1
+## 2026-09-23：跟 RoomBattleSettings.gd 同一套「房主看得到開始鈕、其他人
+## 只看得到準備鈕」模式——單機模式沒有房主/其他人的分別，永遠當成
+## _is_owner=true（維持原本單機行為：只有一顆開始鈕）。
+var _is_owner: bool = false
+var _is_ready: bool = false
 
 func _ready() -> void:
 	_local_peer_id = multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
+	_is_owner = BattleSettings.is_solo_mode or multiplayer.get_unique_id() == NetworkManager.room_owner_peer_id
 	# 2026-09-23：連線模式不要在這裡清空——BattleSettings._placements 是跨場景
 	# 持續存在的 autoload 狀態，這個畫面載入時如果已經連上線，代表房主/其他人
 	# 可能已經先分好隊了，各自清一次自己本機那份會馬上跟大家對不上（而且沒有
@@ -54,15 +62,41 @@ func _ready() -> void:
 		BattleSettings.reset_team_assignments()
 	_cells_portrait = _build_grid(grid_portrait)
 	_cells_landscape = _build_grid(grid_landscape)
+	_apply_owner_mode_ui()
 	_refresh_grid()
 	start_button_portrait.pressed.connect(_on_start_pressed)
 	start_button_landscape.pressed.connect(_on_start_pressed)
+	ready_button_portrait.pressed.connect(_on_ready_pressed)
+	ready_button_landscape.pressed.connect(_on_ready_pressed)
 	back_button_portrait.pressed.connect(_on_back_pressed)
 	back_button_landscape.pressed.connect(_on_back_pressed)
 	BattleSettings.teams_changed.connect(_refresh_grid)
+	if not BattleSettings.is_solo_mode:
+		NetworkManager.room_state_updated.connect(_refresh_from_network_state)
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+
+## 房主看得到「開始比賽」（等所有人都分好隊、按過準備才能按）；其他人只
+## 看得到「準備」（分好隊之後按，跟 RoomBattleSettings.gd 的
+## _apply_owner_mode_ui() 同一套模式，NetworkManager.set_ready() 本身也已經
+## 擋掉房主呼叫，這裡只是連 UI 都不給房主看到）。
+func _apply_owner_mode_ui() -> void:
+	start_button_portrait.visible = _is_owner
+	start_button_landscape.visible = _is_owner
+	ready_button_portrait.visible = not _is_owner
+	ready_button_landscape.visible = not _is_owner
+
+func _refresh_from_network_state() -> void:
+	_apply_owner_mode_ui()
+	_refresh_start_button()
+
+func _on_ready_pressed() -> void:
+	_is_ready = not _is_ready
+	var text := "取消準備" if _is_ready else "準備"
+	ready_button_portrait.text = text
+	ready_button_landscape.text = text
+	NetworkManager.set_ready(_is_ready)
 
 ## 旋轉裝置、直向橫向比例翻轉時，切換顯示哪一組 PortraitLayout/
 ## LandscapeLayout，跟其他選單畫面同一套做法。
@@ -181,16 +215,39 @@ func _refresh_cells(cells: Array) -> void:
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
 
+## 2026-09-23：多人模式下「可以開始」除了原本的「所有人都選好隊伍」，
+## 再加一條「所有人都按過準備」（跟房間設定畫面同一套模式）——單機模式
+## 沒有這個概念，維持原本只看「有沒有分好隊」。非房主完全看不到開始鈕
+## （見 _apply_owner_mode_ui()），這裡的 disabled 賦值對他們不會有作用，
+## 但邏輯統一寫，不用特別分支跳過。
 func _refresh_start_button() -> void:
 	var can_start: bool
 	var status_text: String
 	if BattleSettings.is_solo_mode:
 		can_start = BattleSettings.has_opponent_for_solo(_local_peer_id)
 		status_text = "可以開始比賽" if can_start else "先分好隊、至少放一個對手（AI）"
+	elif not _is_owner:
+		can_start = false
+		status_text = "已準備，等待房主開始" if _is_ready else "分好隊之後按下「準備」"
 	else:
 		var peer_ids := _get_connected_peer_ids()
-		can_start = BattleSettings.all_assigned(peer_ids)
-		status_text = "所有人都選好隊伍了，可以開始" if can_start else "等待所有玩家選好隊伍…"
+		var all_assigned := BattleSettings.all_assigned(peer_ids)
+		var ready_states := NetworkManager.get_ready_states()
+		var has_other_player := not ready_states.is_empty()
+		var all_ready := true
+		for ready in ready_states.values():
+			if not ready:
+				all_ready = false
+				break
+		can_start = has_other_player and all_assigned and all_ready
+		if not has_other_player:
+			status_text = "等待其他玩家加入…"
+		elif not all_assigned:
+			status_text = "等待所有玩家選好隊伍…"
+		elif not all_ready:
+			status_text = "等待所有玩家按下準備…"
+		else:
+			status_text = "所有人都準備好了，可以開始"
 	status_label_portrait.text = status_text
 	status_label_landscape.text = status_text
 	start_button_portrait.disabled = not can_start

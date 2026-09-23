@@ -548,9 +548,16 @@ func _on_random_piece_toggled(pressed: bool) -> void:
 	random_piece_toggle_landscape.button_pressed = pressed
 	BattleSettings.sync_room_rules()
 
+## 2026-09-23 修正：多人模式下這顆按鈕（房主端顯示「開始」）原本只是本機
+## 自己切場景，其他人沒有跟著切過去、卡在這個畫面——改叫
+## NetworkManager.advance_to_team_select()，讓房主之外的人也會一起被帶去
+## 分隊畫面（見該函式的說明）。單機模式沒有連線，維持原本直接切場景。
 func _on_next_pressed() -> void:
 	BattleSettings.settings_changed.emit()
-	get_tree().change_scene_to_file("res://Scenes/TeamSelect.tscn")
+	if _is_multiplayer:
+		NetworkManager.advance_to_team_select()
+	else:
+		get_tree().change_scene_to_file("res://Scenes/TeamSelect.tscn")
 
 ## 單人模式是 change_scene_to_file 直接進來的獨立場景，返回要換場景；多人
 ## 模式是疊在 MultiplayerLobby 上面的 overlay（跟舊 RoomLobby.tscn 一樣的

@@ -705,6 +705,51 @@ func _claim_match_reconnect(claimed_participant_id: int) -> void:
 	match_reconnect_claimed.emit(multiplayer.get_remote_sender_id(), claimed_participant_id)
 
 
+## 2026-09-23 使用者回報：房主在 RoomBattleSettings.tscn 按下「開始」之後
+## 只有房主自己看得到分隊畫面，其他人卡在原地——原因是那顆按鈕
+## （RoomBattleSettings._on_next_pressed()）原本只是本機自己
+## change_scene_to_file("TeamSelect.tscn")，沒有透過網路通知其他人一起切
+## 過去，一直是純本機動作，沒人做過。跟 start_match()/end_match() 同一套
+## 「client 請求→host 驗證→host 廣播」慣例，這裡補上，讓房主按下去時大家
+## 一起切到分隊畫面（真正開始比賽仍然是分隊完成後另外呼叫 start_match()，
+## 這裡只負責這一個中間步驟）。
+func advance_to_team_select() -> void:
+	if multiplayer.get_unique_id() != room_owner_peer_id:
+		return
+	if multiplayer.get_unique_id() == HOST_PEER_ID:
+		_do_advance_to_team_select()
+	else:
+		_request_advance_to_team_select.rpc_id(HOST_PEER_ID)
+
+
+@rpc("any_peer", "reliable")
+func _request_advance_to_team_select() -> void:
+	if multiplayer.get_unique_id() != HOST_PEER_ID:
+		return  # 防呆：只有伺服器本人才會真的受理
+	if multiplayer.get_remote_sender_id() != room_owner_peer_id:
+		return  # 防呆：只有目前認領到房主身分的那個人送的請求才算數
+	_do_advance_to_team_select()
+
+
+func _do_advance_to_team_select() -> void:
+	# 2026-09-23 使用者需求：分隊畫面要跟房間設定畫面同一套「加入方按準備、
+	# 房主按開始」——_peer_ready 這份狀態在房間設定階段已經被大家按過一輪
+	# 「準備」（不然房主的開始鈕不會亮），進分隊畫面前先整批重設回 false,
+	# 逼大家在分隊畫面重新按一次準備（分好隊之後才按,不是延用舊的準備
+	# 狀態），不然大家一進來就會直接顯示「已準備」，分隊畫面的準備機制形同
+	# 虛設。
+	for peer_id in _peer_ready:
+		_peer_ready[peer_id] = false
+	_broadcast_room_state()
+	_advance_to_team_select.rpc()
+
+
+## call_local——房主自己也走這條路徑切場景，不用另外維護一份重複邏輯。
+@rpc("authority", "call_local", "reliable")
+func _advance_to_team_select() -> void:
+	get_tree().change_scene_to_file("res://Scenes/TeamSelect.tscn")
+
+
 ## 房主在房間等候畫面按下「開始」時呼叫（見 RoomLobby.gd）。單人房間
 ## （room_max_players 剛好等於目前總人數 1）不需要等任何人準備，房主自己
 ## 按下就能進——這裡用「目前有沒有其他人在房間裡」判斷，不是看

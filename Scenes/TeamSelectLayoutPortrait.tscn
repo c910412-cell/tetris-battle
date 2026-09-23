@@ -64,3 +64,12 @@ offset_bottom = 1868.0
 theme_override_font_sizes/font_size = 26
 disabled = true
 text = "開始比賽"
+
+[node name="ReadyButton" type="Button" parent="."]
+visible = false
+offset_left = 560.0
+offset_top = 1780.0
+offset_right = 1020.0
+offset_bottom = 1868.0
+theme_override_font_sizes/font_size = 26
+text = "準備"

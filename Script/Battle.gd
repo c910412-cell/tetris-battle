@@ -519,8 +519,15 @@ func _request_leave_vote() -> void:
 func _broadcast_leave_votes(vote_count: int, total: int) -> void:
 	_update_vote_dots(vote_count, total)
 
+## 2026-09-23 修正：這裡原本只切場景,沒有呼叫 NetworkManager.cancel()——
+## 連線本身（multiplayer_peer）、_match_started、room_owner_peer_id 這些
+## 都沒有清掉,等於「看起來回到大廳了,但其實還連在線上、還被記成對局進行
+## 中」，之後如果這個人（或這台裝置）想重新搜尋/加入其他房間，房主端那邊
+## 的 _peer_ready 也永遠不會清掉這個人，房間人數/是否已滿會一直卡著錯的值
+## 。call_local 每個人都要清乾淨自己這份，不是只有觸發離開的那個人。
 @rpc("authority", "call_local", "reliable")
 func _broadcast_leave_match() -> void:
+	NetworkManager.cancel()
 	get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
 
 func _handle_input(delta: float) -> void:

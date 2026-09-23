@@ -83,7 +83,16 @@ func _ready() -> void:
 	# 那樣從 Lobby.tscn 疊加開啟——這裡連線本身（multiplayer_peer）從頭到尾
 	# 沒斷，房主/連線端都還在房間裡，應該直接落地在 RoomLobby.tscn，不用
 	# 使用者手動重新開房/搜尋加入一次。
-	if multiplayer.multiplayer_peer != null:
+	# 2026-09-23 使用者回報：從 Lobby.tscn 正常點「本地連線」（疊加開啟，不是
+	# 整個場景重載）卻也直接跳進房間畫面，要按返回才會回到搜尋房間——原因是
+	# 只檢查 multiplayer.multiplayer_peer != null 不夠精準：同一次 App 執行
+	# 期間只要之前連線過、沒有真的走過 NetworkManager.cancel()，這個底層旗標
+	# 就會一直是「非 null」，跟「剛從已結束的對局場景整個重載回來」是完全不同
+	# 的情境，卻被誤判成同一種。加上 get_tree().current_scene == self 這個
+	# 判斷區分兩者——只有「這個畫面本身就是整個場景重載進來的根節點」才是
+	# 真正該自動接回房間等候畫面的情境，跟 _on_close_pressed() 判斷是不是要
+	# change_scene_to_file 用的是同一個道理。
+	if multiplayer.multiplayer_peer != null and get_tree().current_scene == self:
 		_set_host_join_disabled(true)
 		_open_room_lobby()
 

@@ -68,9 +68,18 @@ func _apply_orientation_layout() -> void:
 
 ## 跟 _on_remote_battle_pressed() 同一套 instantiate/add_child/tree_exited
 ## 模式，關閉時不用自己收尾。
+## 2026-09-23 使用者回報：同一次 App 執行期間如果先試過「單人遊玩」
+## （_on_solo_play_pressed() 會把 is_solo_mode 設 true），再回來點「本地連線」，
+## is_solo_mode 卻沒有人負責改回 false——這個旗標會一路帶進
+## RoomBattleSettings.gd/TeamSelect.gd，讓它們誤判成單機模式（房間資訊/
+## 對戰規則整段隱藏、按鈕變成單機那顆「下一步：分隊」、分隊點格子也會跑進
+## 單機才有的「依序補 AI」邏輯，不會真的把自己放進隊伍廣播出去）。在這個
+## 「進入本地連線」的入口明確重設，跟 _on_solo_play_pressed() 明確設 true
+## 對稱。
 func _on_online_battle_pressed() -> void:
 	if _multiplayer_lobby_instance and is_instance_valid(_multiplayer_lobby_instance):
 		return
+	BattleSettings.is_solo_mode = false
 	_multiplayer_lobby_instance = multiplayer_lobby_scene.instantiate()
 	add_child(_multiplayer_lobby_instance)
 	_multiplayer_lobby_instance.tree_exited.connect(_on_multiplayer_lobby_closed)
