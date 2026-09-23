@@ -17,7 +17,14 @@ on:
 env:
   # 要跟你編輯器實際在用的 Godot 版本一致（專案是 4.7.1）。
   GODOT_VERSION: "4.7.1"
+  # GitHub release 標籤（下載網址用）跟 Godot 編輯器實際找 export templates
+  # 用的本機資料夾名稱格式不一樣——前者是連字號 "4.7.1-stable"，後者是
+  # 句點 "4.7.1.stable"（見 `godot --version` 印出來的
+  # "v4.7.1.stable.official.xxxx"，Godot 找模板時用這個格式去掉
+  # ".official.xxxx" 尾巴）。第一次真的跑失敗就是把這兩個搞混，這裡分開
+  # 兩個變數避免再犯。
   GODOT_RELEASE_TAG: "4.7.1-stable"
+  GODOT_TEMPLATE_DIR: "4.7.1.stable"
   EXPORT_PRESET: "iOS"
   SCHEME_NAME: "TetrisBattle"
   BUNDLE_NAME: "TetrisBattle"
@@ -52,9 +59,11 @@ jobs:
           mkdir -p ~/Library/Application\ Support/Godot/export_templates
           unzip -q ~/godot/templates.tpz -d ~/Library/Application\ Support/Godot/export_templates
           # .tpz 解壓出來會多一層 "templates/" 資料夾，Godot 期待的路徑是
-          # export_templates/<版本字串>/ 直接放檔案，這裡把它搬到正確位置。
+          # export_templates/<版本字串>/ 直接放檔案，這裡把它搬到正確位置
+          # ——注意資料夾名稱要用句點格式（GODOT_TEMPLATE_DIR），不是下載
+          # 網址用的連字號格式（GODOT_RELEASE_TAG），這兩個是分開的。
           mv ~/Library/Application\ Support/Godot/export_templates/templates \
-            ~/Library/Application\ Support/Godot/export_templates/${GODOT_RELEASE_TAG}
+            ~/Library/Application\ Support/Godot/export_templates/${GODOT_TEMPLATE_DIR}
 
       - name: Locate Godot editor binary
         run: |
