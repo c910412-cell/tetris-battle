@@ -61,6 +61,9 @@ func bind_director(director: BattleDirector, is_host_authority: bool, local_part
 	_is_host_authority = is_host_authority
 	_local_participant_id = local_participant_id
 	_continue_confirmed.clear()
+	var participant_ids: Array = director.participants.keys()
+	print("[Sync] bind_director my_id=%d is_host_authority=%s local_participant_id=%d networked=%s participants=%s" \
+			% [multiplayer.get_unique_id(), is_host_authority, local_participant_id, _is_networked(), str(participant_ids)])
 	director.local_board_changed.connect(_on_local_board_changed)
 	director.attack_relay_needed.connect(_on_attack_relay_needed)
 	director.pending_counts_changed.connect(_on_pending_counts_changed)
@@ -94,21 +97,27 @@ func _is_networked() -> bool:
 
 func _on_local_board_changed(participant_id: int) -> void:
 	if not _is_networked():
+		print("[Sync] _on_local_board_changed participant=%d SKIPPED (not networked)" % participant_id)
 		return
 	var participant: BattleParticipant = _director.participants.get(participant_id)
 	if participant == null:
+		print("[Sync] _on_local_board_changed participant=%d SKIPPED (not found in director.participants)" % participant_id)
 		return
 	var snapshot: Dictionary = participant.controller.get_resume_snapshot()
 	if _is_host_authority:
+		print("[Sync] _on_local_board_changed participant=%d -> broadcast _sync_board_state.rpc()" % participant_id)
 		_sync_board_state.rpc(participant_id, snapshot)
 	else:
+		print("[Sync] _on_local_board_changed participant=%d -> rpc_id host _request_report_board_state" % participant_id)
 		_request_report_board_state.rpc_id(NetworkManager.HOST_PEER_ID, participant_id, snapshot)
 
 @rpc("any_peer", "reliable")
 func _request_report_board_state(participant_id: int, snapshot: Dictionary) -> void:
+	print("[Sync] RECEIVED _request_report_board_state participant=%d my_id=%d" % [participant_id, multiplayer.get_unique_id()])
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return  # 防呆：只有伺服器本人才會真的受理
 	if _resolve_sender_participant_id() != participant_id:
+		print("[Sync] _request_report_board_state REJECTED sender mismatch: resolved=%d claimed=%d" % [_resolve_sender_participant_id(), participant_id])
 		return  # 只能回報自己的盤面,不能假冒別人
 	_sync_board_state.rpc(participant_id, snapshot)
 
@@ -118,20 +127,28 @@ func _request_report_board_state(participant_id: int, snapshot: Dictionary) -> v
 @rpc("authority", "call_local", "reliable")
 func _sync_board_state(participant_id: int, snapshot: Dictionary) -> void:
 	var participant: BattleParticipant = _director.participants.get(participant_id)
-	if participant == null or participant.is_local:
-		return  # 本機自己模擬的參與者不需要被網路狀態覆蓋
+	if participant == null:
+		print("[Sync] RECEIVED _sync_board_state participant=%d SKIPPED (not found)" % participant_id)
+		return
+	if participant.is_local:
+		print("[Sync] RECEIVED _sync_board_state participant=%d SKIPPED (is_local on this device)" % participant_id)
+		return
+	print("[Sync] RECEIVED _sync_board_state participant=%d -> restore_from_snapshot APPLIED" % participant_id)
 	participant.controller.restore_from_snapshot(snapshot)
 
 ## --- C：攻擊/垃圾行結算同步 ----------------------------------------------
 
 func _on_attack_relay_needed(participant_id: int, attack_power: int, gap_columns: Array) -> void:
+	print("[Sync] _on_attack_relay_needed participant=%d -> rpc_id host _request_resolve_attack" % participant_id)
 	_request_resolve_attack.rpc_id(NetworkManager.HOST_PEER_ID, participant_id, attack_power, gap_columns)
 
 @rpc("any_peer", "reliable")
 func _request_resolve_attack(participant_id: int, attack_power: int, gap_columns: Array) -> void:
+	print("[Sync] RECEIVED _request_resolve_attack participant=%d my_id=%d" % [participant_id, multiplayer.get_unique_id()])
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return
 	if _resolve_sender_participant_id() != participant_id:
+		print("[Sync] _request_resolve_attack REJECTED sender mismatch")
 		return
 	_director.resolve_attack(participant_id, attack_power, gap_columns)
 
@@ -144,6 +161,7 @@ func _on_pending_counts_changed() -> void:
 	var counts := {}
 	for pid in _director.participants:
 		counts[pid] = _director.participants[pid].pending_garbage.size()
+	print("[Sync] _on_pending_counts_changed -> broadcast _sync_pending_counts.rpc(%s)" % str(counts))
 	_sync_pending_counts.rpc(counts)
 
 ## 非本機模擬的參與者收到的只是「數量」，不是真的缺口欄位——他們的
@@ -165,10 +183,12 @@ func _sync_pending_counts(counts: Dictionary) -> void:
 ## BattleDirector._settle_all()）——轉送給那個人的裝置自己套用（那台裝置
 ## 才是真正模擬那個 controller 的一方,host 不能代打）。
 func _on_remote_garbage_ready(participant_id: int, gap_columns: Array) -> void:
+	print("[Sync] _on_remote_garbage_ready participant=%d target_real_peer=%d lines=%d" % [participant_id, _real_peer_for(participant_id), gap_columns.size()])
 	_apply_garbage.rpc_id(_real_peer_for(participant_id), gap_columns)
 
 @rpc("authority", "reliable")
 func _apply_garbage(gap_columns: Array) -> void:
+	print("[Sync] RECEIVED _apply_garbage lines=%d -> apply_injected_garbage for local_participant=%d" % [gap_columns.size(), _local_participant_id])
 	_director.apply_injected_garbage(_local_participant_id, gap_columns)
 
 ## --- C：淘汰/回合結束同步 -------------------------------------------------
@@ -196,6 +216,7 @@ func _sync_elimination(participant_id: int) -> void:
 func _on_round_ended(winning_team: int) -> void:
 	if not _is_host_authority or not _is_networked():
 		return
+	print("[Sync] _on_round_ended winning_team=%d -> broadcast _sync_round_end.rpc()" % winning_team)
 	_sync_round_end.rpc(winning_team)
 
 @rpc("authority", "reliable")

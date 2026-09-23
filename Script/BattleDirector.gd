@@ -199,6 +199,7 @@ func set_manual_target(participant_id: int, target_id: int) -> bool:
 ## 觸發時機點（鎖方塊一定會發生；消行/結算不一定）。
 func _on_piece_locked(participant: BattleParticipant) -> void:
 	if participant.is_local:
+		print("[Sync] piece_locked participant=%d is_local=%s -> emit local_board_changed" % [participant.id, participant.is_local])
 		local_board_changed.emit(participant.id)
 
 ## 結算：把每個參與者累積的待定垃圾行整包疊上他自己的盤面。只會在 host 權威
@@ -219,10 +220,12 @@ func _settle_all() -> void:
 			gap_columns.append(gap)
 		participant.pending_garbage.clear()
 		if participant.is_local or participant.is_disconnected:
+			print("[Sync] _settle_all participant=%d is_local=%s is_disconnected=%s -> inject_garbage directly, lines=%d" % [participant_id, participant.is_local, participant.is_disconnected, gap_columns.size()])
 			participant.controller.inject_garbage(gap_columns)
 			if participant.is_local:
 				local_board_changed.emit(participant_id)
 		else:
+			print("[Sync] _settle_all participant=%d is remote -> emit remote_garbage_ready, lines=%d" % [participant_id, gap_columns.size()])
 			remote_garbage_ready.emit(participant_id, gap_columns)
 		garbage_settled.emit(participant_id, gap_columns.size())
 	pending_counts_changed.emit()
@@ -251,8 +254,10 @@ func _on_attack_ready(attack_power: int, gap_columns: Array, participant: Battle
 	## 自己不能跑出一份結算結果，改把原始資料轉送給 host（見
 	## attack_relay_needed 的說明，Script/BattleMatchSync.gd 負責真正轉送）。
 	if not _is_host_authority:
+		print("[Sync] attack_ready participant=%d not host authority -> emit attack_relay_needed" % participant.id)
 		attack_relay_needed.emit(participant.id, attack_power, gap_columns)
 		return
+	print("[Sync] attack_ready participant=%d host authority -> _apply_attack directly" % participant.id)
 	_apply_attack(participant, attack_power, gap_columns)
 
 func _apply_attack(participant: BattleParticipant, attack_power: int, gap_columns: Array) -> void:
@@ -278,6 +283,7 @@ func _apply_attack(participant: BattleParticipant, attack_power: int, gap_column
 				if BattleSettings.garbage_cap_enabled and target.pending_garbage.size() >= BattleSettings.garbage_cap_lines:
 					break # 已達單一結算間隔的垃圾行上限，剩餘點數直接作廢。
 				target.pending_garbage.append(int(gap_columns[i % gap_columns.size()]))
+	print("[Sync] _apply_attack done for participant=%d -> emit pending_counts_changed" % participant.id)
 	pending_counts_changed.emit()
 
 ## 給 Script/BattleMatchSync.gd 呼叫：host 收到遠端真人自己套用垃圾行之後
@@ -318,11 +324,13 @@ func _eliminate_participant(participant: BattleParticipant) -> void:
 ## （唯一一種非權威裝置的 controller 真的會被 tick 到、真的能自己觸發
 ## game_over 的情況），沒辦法自己決定回合結束，改回報給 host。
 func _on_participant_game_over(participant: BattleParticipant) -> void:
+	print("[Sync] participant_game_over participant=%d is_host_authority=%s" % [participant.id, _is_host_authority])
 	_eliminate_participant(participant)
 	if _is_host_authority:
 		elimination_synced.emit(participant.id)
 		_check_round_end()
 	elif participant.id == _local_participant_id:
+		print("[Sync] -> emit elimination_report_needed for own participant=%d" % participant.id)
 		elimination_report_needed.emit(participant.id)
 
 ## 給 Script/BattleMatchSync.gd 呼叫：host 收到遠端真人回報「我被淘汰了」
@@ -361,6 +369,7 @@ func _check_round_end() -> void:
 		var winning_team := -1
 		for team in alive_teams:
 			winning_team = team
+		print("[Sync] _check_round_end -> winning_team=%d" % winning_team)
 		apply_round_end(winning_team)
 
 ## 套用回合結束結果——權威裝置自己算完直接呼叫;非權威裝置收到網路廣播後

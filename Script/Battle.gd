@@ -419,7 +419,17 @@ func _on_pause_pressed() -> void:
 		return
 	if _local_pause_used:
 		return
-	_request_pause.rpc_id(NetworkManager.HOST_PEER_ID)
+	## 2026-09-23 修正：房主自己按暫停時,rpc_id(HOST_PEER_ID) 是「對自己送
+	## RPC」——Godot 的 rpc_id() 對自己這個目標不會本機直接呼叫（除非 RPC
+	## 本身有 call_local,但 _request_pause 是 any_peer,沒有),會直接被引擎
+	## 擋掉、印出 "RPC '...' on yourself is not allowed by selected mode."
+	## 然後什麼事都不會發生——這正是使用者回報「房主按暫停/離開沒反應」的
+	## 根本原因（已經從實機測試的 log 直接證實)。照 NetworkManager.gd 既有
+	## 慣例,房主自己是就直接呼叫處理函式,不透過 RPC 繞一圈。
+	if multiplayer.get_unique_id() == NetworkManager.HOST_PEER_ID:
+		_handle_pause_request(NetworkManager.HOST_PEER_ID)
+	else:
+		_request_pause.rpc_id(NetworkManager.HOST_PEER_ID)
 
 func _on_pause_resume_pressed() -> void:
 	if not _is_paused or _is_resume_counting_down:
@@ -428,13 +438,19 @@ func _on_pause_resume_pressed() -> void:
 		_is_paused = false
 		pause_layer.visible = false
 		return
-	_request_resume.rpc_id(NetworkManager.HOST_PEER_ID)
+	if multiplayer.get_unique_id() == NetworkManager.HOST_PEER_ID:
+		_handle_resume_request()
+	else:
+		_request_resume.rpc_id(NetworkManager.HOST_PEER_ID)
 
 func _on_pause_leave_pressed() -> void:
 	if BattleSettings.is_solo_mode:
 		get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
 		return
-	_request_leave_vote.rpc_id(NetworkManager.HOST_PEER_ID)
+	if multiplayer.get_unique_id() == NetworkManager.HOST_PEER_ID:
+		_handle_leave_vote(NetworkManager.HOST_PEER_ID)
+	else:
+		_request_leave_vote.rpc_id(NetworkManager.HOST_PEER_ID)
 
 func _show_pause_layer() -> void:
 	pause_layer.visible = true
@@ -467,7 +483,9 @@ func _update_vote_dots(vote_count: int, total: int) -> void:
 func _request_pause() -> void:
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return  # 防呆：只有伺服器本人才會真的受理
-	var sender_id := multiplayer.get_remote_sender_id()
+	_handle_pause_request(multiplayer.get_remote_sender_id())
+
+func _handle_pause_request(sender_id: int) -> void:
 	if _is_paused or _pause_used_by.has(sender_id):
 		return  # 已經暫停中，或這個人這場已經用掉他的那一次機會
 	_pause_used_by[sender_id] = true
@@ -487,6 +505,9 @@ func _broadcast_pause(user_id: int) -> void:
 func _request_resume() -> void:
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return
+	_handle_resume_request()
+
+func _handle_resume_request() -> void:
 	if not _is_paused or _is_resume_counting_down:
 		return
 	_broadcast_resume_countdown.rpc()
@@ -505,7 +526,9 @@ func _broadcast_resume_countdown() -> void:
 func _request_leave_vote() -> void:
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return
-	var sender_id := multiplayer.get_remote_sender_id()
+	_handle_leave_vote(multiplayer.get_remote_sender_id())
+
+func _handle_leave_vote(sender_id: int) -> void:
 	if _leave_votes.has(sender_id):
 		return  # 每人只能投一次，不能反悔取消
 	_leave_votes[sender_id] = true
