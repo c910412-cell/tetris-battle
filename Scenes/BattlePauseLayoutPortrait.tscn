@@ -1,0 +1,55 @@
+[gd_scene format=3]
+
+[node name="BattlePauseLayoutPortrait" type="Control"]
+mouse_filter = 2
+offset_right = 1080.0
+offset_bottom = 1920.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="PauseLabel" type="Label" parent="."]
+offset_left = 340.0
+offset_top = 760.0
+offset_right = 740.0
+offset_bottom = 820.0
+theme_override_font_sizes/font_size = 32
+text = "已暫停"
+horizontal_alignment = 1
+
+[node name="PauseCountdownLabel" type="Label" parent="."]
+visible = false
+offset_left = 440.0
+offset_top = 830.0
+offset_right = 640.0
+offset_bottom = 870.0
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="."]
+offset_left = 440.0
+offset_top = 880.0
+offset_right = 640.0
+offset_bottom = 930.0
+text = "繼續"
+
+[node name="LeaveButton" type="Button" parent="."]
+offset_left = 440.0
+offset_top = 950.0
+offset_right = 640.0
+offset_bottom = 1000.0
+text = "離開"
+
+[node name="VoteDotsLabel" type="Label" parent="."]
+visible = false
+offset_left = 340.0
+offset_top = 1010.0
+offset_right = 740.0
+offset_bottom = 1050.0
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1

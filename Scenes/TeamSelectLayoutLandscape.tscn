@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[node name="TeamSelectLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="TitleLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 40.0
+offset_right = 600.0
+offset_bottom = 110.0
+theme_override_font_sizes/font_size = 40
+text = "分隊"
+
+[node name="HintLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 120.0
+offset_right = 1860.0
+offset_bottom = 180.0
+theme_override_font_sizes/font_size = 20
+autowrap_mode = 2
+text = "點格子加入該隊，再點一次自己所在的格子可以退出，點別隊的格子可以直接換隊。每隊最多 3 人。"
+
+[node name="TeamGrid" type="GridContainer" parent="."]
+offset_left = 60.0
+offset_top = 200.0
+offset_right = 1860.0
+offset_bottom = 680.0
+columns = 4
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+
+[node name="StatusLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 700.0
+offset_right = 1860.0
+offset_bottom = 750.0
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+text = "等待所有玩家選好隊伍…"
+
+[node name="BackButton" type="Button" parent="."]
+offset_left = 60.0
+offset_top = 960.0
+offset_right = 900.0
+offset_bottom = 1048.0
+theme_override_font_sizes/font_size = 26
+text = "返回"
+
+[node name="StartButton" type="Button" parent="."]
+offset_left = 1020.0
+offset_top = 960.0
+offset_right = 1860.0
+offset_bottom = 1048.0
+theme_override_font_sizes/font_size = 26
+disabled = true
+text = "開始比賽"

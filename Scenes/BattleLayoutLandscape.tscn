@@ -1,0 +1,354 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://Script/TetrisTouchButton.gd" id="1"]
+[ext_resource type="Texture2D" path="res://Image/左.png" id="2"]
+[ext_resource type="Texture2D" path="res://Image/右.png" id="3"]
+[ext_resource type="Texture2D" path="res://Image/下.png" id="4"]
+[ext_resource type="Texture2D" path="res://Image/下底.png" id="5"]
+[ext_resource type="Texture2D" path="res://Image/左轉.png" id="6"]
+[ext_resource type="Texture2D" path="res://Image/右轉.png" id="7"]
+[ext_resource type="Texture2D" path="res://Image/hold.png" id="8"]
+[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots1.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots2.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots3.tscn" id="11"]
+[ext_resource type="Script" path="res://Script/TetrisGestureZone.gd" id="12"]
+[ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
+[ext_resource type="Script" path="res://Script/PendingDotsAnchor.gd" id="14"]
+
+[node name="BattleLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="BoardAspect" type="AspectRatioContainer" parent="."]
+mouse_filter = 2
+offset_left = 760.0
+offset_top = 224.0
+offset_right = 1160.0
+offset_bottom = 1024.0
+ratio = 0.5
+
+[node name="BoardAnchor" type="Control" parent="BoardAspect"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="CellAnchor" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 760.0
+offset_top = 224.0
+offset_right = 800.0
+offset_bottom = 264.0
+
+[node name="HoldPanel" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 630.0
+offset_top = 224.0
+offset_right = 750.0
+offset_bottom = 344.0
+
+[node name="Placeholder" type="ReferenceRect" parent="HoldPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="HoldLabel" type="Label" parent="."]
+offset_left = 630.0
+offset_top = 194.0
+offset_right = 730.0
+offset_bottom = 224.0
+theme_override_font_sizes/font_size = 20
+text = "HOLD"
+
+[node name="NextPanel" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 1171.0
+offset_top = 224.0
+offset_right = 1291.0
+offset_bottom = 344.0
+
+[node name="Placeholder" type="ReferenceRect" parent="NextPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="NextLabel" type="Label" parent="."]
+offset_left = 1171.0
+offset_top = 194.0
+offset_right = 1271.0
+offset_bottom = 224.0
+theme_override_font_sizes/font_size = 20
+text = "NEXT"
+
+[node name="StarsLabel" type="Label" parent="."]
+visible = false
+offset_left = 760.0
+offset_top = 20.0
+offset_right = 1160.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="StarsIconAnchor" type="ReferenceRect" parent="."]
+editor_only = true
+offset_left = 760.0
+offset_top = 110.0
+offset_right = 1160.0
+offset_bottom = 160.0
+mouse_filter = 2
+border_color = Color(0.9, 0.8, 0.2, 0.7)
+border_width = 3.0
+
+[node name="SettlementBar" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 760.0
+offset_top = 210.0
+offset_right = 1161.0
+offset_bottom = 218.0
+
+[node name="PendingDotsAnchor" type="Control" parent="BoardAspect/BoardAnchor"]
+mouse_filter = 2
+offset_left = -34.0
+offset_top = 770.0
+offset_right = -14.0
+offset_bottom = 790.0
+script = ExtResource("14")
+
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/PendingDotsAnchor"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="OpponentSlots1" parent="." instance=ExtResource("9")]
+offset_left = 1171.0
+offset_top = 354.0
+offset_right = 1291.0
+offset_bottom = 1050.0
+
+[node name="OpponentSlots2" parent="." instance=ExtResource("10")]
+visible = false
+offset_left = 1171.0
+offset_top = 354.0
+offset_right = 1291.0
+offset_bottom = 1050.0
+
+[node name="OpponentSlots3" parent="." instance=ExtResource("11")]
+visible = false
+offset_left = 1171.0
+offset_top = 354.0
+offset_right = 1291.0
+offset_bottom = 1050.0
+
+[node name="MoveLeftButton" type="TextureButton" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 40.0
+offset_top = -270.0
+offset_right = 160.0
+offset_bottom = -150.0
+texture_normal = ExtResource("2")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_move_left"
+
+[node name="MoveRightButton" type="TextureButton" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 170.0
+offset_top = -270.0
+offset_right = 290.0
+offset_bottom = -150.0
+texture_normal = ExtResource("3")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_move_right"
+
+[node name="SoftDropButton" type="TextureButton" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 105.0
+offset_top = -160.0
+offset_right = 225.0
+offset_bottom = -40.0
+texture_normal = ExtResource("4")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_soft_drop"
+
+[node name="MoveGestureZone" type="Control" parent="."]
+visible = false
+anchor_right = 0.5
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("13")
+
+[node name="RotateCCWButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -270.0
+offset_right = -40.0
+offset_bottom = -150.0
+texture_normal = ExtResource("6")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_rotate_cw"
+
+[node name="RotateCWButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -290.0
+offset_top = -270.0
+offset_right = -170.0
+offset_bottom = -150.0
+texture_normal = ExtResource("7")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_rotate_ccw"
+
+[node name="HardDropButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -225.0
+offset_top = -160.0
+offset_right = -105.0
+offset_bottom = -40.0
+texture_normal = ExtResource("5")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_hard_drop"
+
+[node name="GestureZone" type="Control" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("12")
+
+[node name="HoldButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -225.0
+offset_top = -380.0
+offset_right = -105.0
+offset_bottom = -260.0
+texture_normal = ExtResource("8")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_hold"
+
+[node name="PauseButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 50.0
+offset_right = -40.0
+offset_bottom = 150.0
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+button_color = Color(1, 0.6, 0.1, 0.5)
+input_action = "tetris_pause"
+
+[node name="ScorePlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 80.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="ScoreLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 80.0
+text = "分數: 0"
+
+[node name="LinesPlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 300.0
+offset_bottom = 130.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="LinesLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 300.0
+offset_bottom = 130.0
+text = "消行: 0"
+
+[node name="LevelPlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 140.0
+offset_right = 300.0
+offset_bottom = 180.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="LevelLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 140.0
+offset_right = 300.0
+offset_bottom = 180.0
+text = "等級: 1"
+
+[node name="CountdownPlaceholder" type="ReferenceRect" parent="."]
+offset_left = 860.0
+offset_top = 480.0
+offset_right = 1060.0
+offset_bottom = 600.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="CountdownLabel" type="Label" parent="."]
+offset_left = 860.0
+offset_top = 480.0
+offset_right = 1060.0
+offset_bottom = 600.0
+theme_override_font_sizes/font_size = 72
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1

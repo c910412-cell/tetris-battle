@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[node name="BoardGameOverLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="GameOverLabel" type="Label" parent="."]
+offset_left = 760.0
+offset_top = 460.0
+offset_right = 1160.0
+offset_bottom = 520.0
+theme_override_font_sizes/font_size = 32
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="ReturnButton" type="Button" parent="."]
+offset_left = 860.0
+offset_top = 540.0
+offset_right = 1060.0
+offset_bottom = 590.0
+text = "返回選單"

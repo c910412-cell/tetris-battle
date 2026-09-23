@@ -1,0 +1,115 @@
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyleDisabled"]
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="FieldStyle"]
+bg_color = Color(0.1, 0.1, 0.11, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.35, 0.37, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="MultiplayerLobbyLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="TitleLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 40.0
+offset_right = 700.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 26
+text = "連線對戰"
+
+[node name="CloseButton" type="Button" parent="."]
+offset_left = 1760.0
+offset_top = 40.0
+offset_right = 1860.0
+offset_bottom = 90.0
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "關閉"
+
+[node name="HostModeButton" type="Button" parent="."]
+offset_left = 60.0
+offset_top = 110.0
+offset_right = 700.0
+offset_bottom = 190.0
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "開房"
+
+[node name="JoinModeButton" type="Button" parent="."]
+offset_left = 720.0
+offset_top = 110.0
+offset_right = 1360.0
+offset_bottom = 190.0
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+theme_override_styles/disabled = SubResource("ButtonStyleDisabled")
+text = "搜尋房間"
+
+[node name="StatusLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 210.0
+offset_right = 1860.0
+offset_bottom = 250.0
+theme_override_font_sizes/font_size = 20
+text = "選擇「開房」或「搜尋房間」"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="SearchEdit" type="LineEdit" parent="."]
+offset_left = 60.0
+offset_top = 260.0
+offset_right = 1860.0
+offset_bottom = 310.0
+theme_override_styles/normal = SubResource("FieldStyle")
+theme_override_styles/read_only = SubResource("FieldStyle")
+theme_override_styles/focus = SubResource("FieldStyle")
+placeholder_text = "搜尋房間名稱"
+max_length = 20
+virtual_keyboard_enabled = false
+
+[node name="RoomListScroll" type="ScrollContainer" parent="."]
+offset_left = 60.0
+offset_top = 330.0
+offset_right = 1860.0
+offset_bottom = 1040.0
+
+[node name="RoomListContent" type="VBoxContainer" parent="RoomListScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8

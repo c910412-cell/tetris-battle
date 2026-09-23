@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[node name="OpponentSlots3" type="Control"]
+mouse_filter = 2
+offset_right = 160.0
+offset_bottom = 900.0
+
+[node name="Slot1" type="Control" parent="."]
+mouse_filter = 2
+anchor_right = 1.0
+anchor_bottom = 0.3333
+offset_bottom = -8.0
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot1"]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.9, 0.5, 0.2, 0.7)
+border_width = 3.0
+
+[node name="Slot2" type="Control" parent="."]
+mouse_filter = 2
+anchor_top = 0.3333
+anchor_right = 1.0
+anchor_bottom = 0.6667
+offset_top = 4.0
+offset_bottom = -4.0
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot2"]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.9, 0.5, 0.2, 0.7)
+border_width = 3.0
+
+[node name="Slot3" type="Control" parent="."]
+mouse_filter = 2
+anchor_top = 0.6667
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 8.0
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot3"]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.9, 0.5, 0.2, 0.7)
+border_width = 3.0

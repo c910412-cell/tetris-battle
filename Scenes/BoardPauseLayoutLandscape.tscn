@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[node name="BoardPauseLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="PauseLabel" type="Label" parent="."]
+offset_left = 810.0
+offset_top = 460.0
+offset_right = 1110.0
+offset_bottom = 520.0
+theme_override_font_sizes/font_size = 32
+text = "已暫停"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="."]
+offset_left = 860.0
+offset_top = 540.0
+offset_right = 1060.0
+offset_bottom = 590.0
+text = "繼續"
+
+[node name="LeaveButton" type="Button" parent="."]
+offset_left = 860.0
+offset_top = 610.0
+offset_right = 1060.0
+offset_bottom = 660.0
+text = "離開"

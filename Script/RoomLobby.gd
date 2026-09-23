@@ -307,8 +307,14 @@ func _on_ready_pressed() -> void:
 	NetworkManager.set_ready(_is_ready)
 
 
+## 2026-09-21 起：按「開始」不再直接 NetworkManager.start_match()（那個是真的
+## 把大家送進 Board.tscn），改成先進房主專屬的對戰規則設定畫面
+## （RoomBattleSettings.tscn）→ 分隊畫面（TeamSelect.tscn），設定/分隊都完成後
+## 才由 TeamSelect.gd 呼叫 NetworkManager.start_match()。見
+## memory/tetris_multiplayer_battle_design.md 的規格記錄。
 func _on_start_pressed() -> void:
-	NetworkManager.start_match()
+	BattleSettings.is_solo_mode = false
+	get_tree().change_scene_to_file("res://Scenes/RoomBattleSettings.tscn")
 
 
 ## 房主在等候階段離開/斷線（見 NetworkManager._on_server_disconnected()

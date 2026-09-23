@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[node name="SettingsLayoutPortrait" type="Control"]
+mouse_filter = 2
+offset_right = 1080.0
+offset_bottom = 1920.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="TitleLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 80.0
+offset_right = 700.0
+offset_bottom = 150.0
+theme_override_font_sizes/font_size = 44
+text = "設定"
+
+[node name="VibrationRow" type="HBoxContainer" parent="."]
+offset_left = 60.0
+offset_top = 320.0
+offset_right = 1020.0
+offset_bottom = 400.0
+
+[node name="Label" type="Label" parent="VibrationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "震動回饋（消行／被攻擊／淘汰）"
+autowrap_mode = 2
+
+[node name="VibrationToggle" type="CheckButton" parent="VibrationRow"]
+layout_mode = 2
+
+[node name="GestureRow" type="HBoxContainer" parent="."]
+offset_left = 60.0
+offset_top = 460.0
+offset_right = 1020.0
+offset_bottom = 540.0
+
+[node name="Label" type="Label" parent="GestureRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "手勢操作（右側滑動：左滑左轉／右滑右轉／下滑到底）"
+autowrap_mode = 2
+
+[node name="GestureToggle" type="CheckButton" parent="GestureRow"]
+layout_mode = 2
+
+[node name="CloseButton" type="Button" parent="."]
+offset_left = 60.0
+offset_top = 1780.0
+offset_right = 500.0
+offset_bottom = 1868.0
+theme_override_font_sizes/font_size = 26
+text = "返回"

@@ -1,27 +1,8 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Script/Lobby.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="PanelStyleMode"]
-bg_color = Color(0.16, 0.16, 0.17, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.11797587, 0.117975585, 0.12430627, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 24
-corner_radius_bottom_left = 24
-shadow_color = Color(0, 0, 0, 0.12)
-shadow_size = 6
-
-[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
-bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+[ext_resource type="PackedScene" path="res://Scenes/LobbyLayoutPortrait.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://Scenes/LobbyLayoutLandscape.tscn" id="3"]
 
 [node name="Lobby" type="CanvasLayer"]
 script = ExtResource("1")
@@ -43,69 +24,15 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.24653554, 0.24640146, 0.22792834, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="Root"]
-layout_mode = 1
-anchors_preset = 15
+[node name="PortraitLayout" parent="Root" instance=ExtResource("2")]
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_right = 0.0
+offset_bottom = 0.0
 
-[node name="MainColumn" type="VBoxContainer" parent="Root/CenterContainer"]
-layout_mode = 2
-theme_override_constants/separation = 32
-
-[node name="TitleLabel" type="Label" parent="Root/CenterContainer/MainColumn"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 36
-horizontal_alignment = 1
-text = "俄羅斯方塊對戰"
-
-[node name="ModePanel" type="PanelContainer" parent="Root/CenterContainer/MainColumn"]
-custom_minimum_size = Vector2(1040, 360)
-layout_mode = 2
-theme_override_styles/panel = SubResource("PanelStyleMode")
-
-[node name="ModeMargin" type="MarginContainer" parent="Root/CenterContainer/MainColumn/ModePanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
-
-[node name="ModeScroll" type="ScrollContainer" parent="Root/CenterContainer/MainColumn/ModePanel/ModeMargin"]
-layout_mode = 2
-vertical_scroll_mode = 0
-
-[node name="ModeRow" type="HBoxContainer" parent="Root/CenterContainer/MainColumn/ModePanel/ModeMargin/ModeScroll"]
-layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="PracticeCell" type="Button" parent="Root/CenterContainer/MainColumn/ModePanel/ModeMargin/ModeScroll/ModeRow"]
-custom_minimum_size = Vector2(300, 320)
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-theme_override_styles/normal = SubResource("ButtonStyleNormal")
-theme_override_styles/pressed = SubResource("ButtonStyleNormal")
-theme_override_styles/hover = SubResource("ButtonStyleNormal")
-text = "單人練習"
-
-[node name="OnlineBattleCell" type="Button" parent="Root/CenterContainer/MainColumn/ModePanel/ModeMargin/ModeScroll/ModeRow"]
-custom_minimum_size = Vector2(300, 320)
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("ButtonStyleNormal")
-theme_override_styles/pressed = SubResource("ButtonStyleNormal")
-theme_override_styles/hover = SubResource("ButtonStyleNormal")
-text = "連線對戰
-（同 WiFi）"
-
-[node name="RemoteBattleCell" type="Button" parent="Root/CenterContainer/MainColumn/ModePanel/ModeMargin/ModeScroll/ModeRow"]
-custom_minimum_size = Vector2(300, 320)
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("ButtonStyleNormal")
-theme_override_styles/pressed = SubResource("ButtonStyleNormal")
-theme_override_styles/hover = SubResource("ButtonStyleNormal")
-text = "遠端連線
-（不同網路）"
+[node name="LandscapeLayout" parent="Root" instance=ExtResource("3")]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0

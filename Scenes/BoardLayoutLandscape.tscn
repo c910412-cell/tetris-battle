@@ -1,0 +1,286 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://Script/TetrisTouchButton.gd" id="1"]
+[ext_resource type="Texture2D" path="res://Image/左.png" id="2"]
+[ext_resource type="Texture2D" path="res://Image/右.png" id="3"]
+[ext_resource type="Texture2D" path="res://Image/下.png" id="4"]
+[ext_resource type="Texture2D" path="res://Image/下底.png" id="5"]
+[ext_resource type="Texture2D" path="res://Image/左轉.png" id="6"]
+[ext_resource type="Texture2D" path="res://Image/右轉.png" id="7"]
+[ext_resource type="Texture2D" path="res://Image/hold.png" id="8"]
+[ext_resource type="Script" path="res://Script/TetrisGestureZone.gd" id="9"]
+[ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="10"]
+
+[node name="BoardLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="BoardAspect" type="AspectRatioContainer" parent="."]
+mouse_filter = 2
+offset_left = 717.0
+offset_top = 54.0
+offset_right = 1207.0
+offset_bottom = 1034.0
+ratio = 0.5
+
+[node name="BoardAnchor" type="Control" parent="BoardAspect"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="CellAnchor" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 717.0
+offset_top = 54.0
+offset_right = 766.0
+offset_bottom = 103.0
+
+[node name="HoldPanel" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 590.0
+offset_top = 54.0
+offset_right = 710.0
+offset_bottom = 174.0
+
+[node name="Placeholder" type="ReferenceRect" parent="HoldPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="HoldLabel" type="Label" parent="."]
+offset_left = 590.0
+offset_top = 24.0
+offset_right = 690.0
+offset_bottom = 54.0
+theme_override_font_sizes/font_size = 20
+text = "HOLD"
+
+[node name="NextPanel" type="Control" parent="."]
+mouse_filter = 2
+offset_left = 1210.0
+offset_top = 54.0
+offset_right = 1330.0
+offset_bottom = 174.0
+
+[node name="Placeholder" type="ReferenceRect" parent="NextPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="NextLabel" type="Label" parent="."]
+offset_left = 1210.0
+offset_top = 24.0
+offset_right = 1310.0
+offset_bottom = 54.0
+theme_override_font_sizes/font_size = 20
+text = "NEXT"
+
+[node name="MoveLeftButton" type="TextureButton" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 40.0
+offset_top = -270.0
+offset_right = 160.0
+offset_bottom = -150.0
+texture_normal = ExtResource("2")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_move_left"
+
+[node name="MoveRightButton" type="TextureButton" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 170.0
+offset_top = -270.0
+offset_right = 290.0
+offset_bottom = -150.0
+texture_normal = ExtResource("3")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_move_right"
+
+[node name="SoftDropButton" type="TextureButton" parent="."]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 105.0
+offset_top = -160.0
+offset_right = 225.0
+offset_bottom = -40.0
+texture_normal = ExtResource("4")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_soft_drop"
+
+[node name="MoveGestureZone" type="Control" parent="."]
+visible = false
+anchor_right = 0.5
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("10")
+
+[node name="RotateCCWButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -270.0
+offset_right = -40.0
+offset_bottom = -150.0
+texture_normal = ExtResource("6")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_rotate_cw"
+
+[node name="RotateCWButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -290.0
+offset_top = -270.0
+offset_right = -170.0
+offset_bottom = -150.0
+texture_normal = ExtResource("7")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_rotate_ccw"
+
+[node name="HardDropButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -225.0
+offset_top = -160.0
+offset_right = -105.0
+offset_bottom = -40.0
+texture_normal = ExtResource("5")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_hard_drop"
+
+[node name="GestureZone" type="Control" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("9")
+
+[node name="HoldButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -225.0
+offset_top = -380.0
+offset_right = -105.0
+offset_bottom = -260.0
+texture_normal = ExtResource("8")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_hold"
+
+[node name="PauseButton" type="TextureButton" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 50.0
+offset_right = -40.0
+offset_bottom = 150.0
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+button_color = Color(1, 0.6, 0.1, 0.5)
+input_action = "tetris_pause"
+
+[node name="ScorePlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 80.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="ScoreLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 80.0
+text = "分數: 0"
+
+[node name="LinesPlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 300.0
+offset_bottom = 130.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="LinesLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 90.0
+offset_right = 300.0
+offset_bottom = 130.0
+text = "消行: 0"
+
+[node name="LevelPlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 140.0
+offset_right = 300.0
+offset_bottom = 180.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="LevelLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 140.0
+offset_right = 300.0
+offset_bottom = 180.0
+text = "等級: 1"
+
+[node name="HighScorePlaceholder" type="ReferenceRect" parent="."]
+offset_left = 40.0
+offset_top = 190.0
+offset_right = 400.0
+offset_bottom = 230.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="HighScoreLabel" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 190.0
+offset_right = 400.0
+offset_bottom = 230.0
+text = "最高紀錄: 0"

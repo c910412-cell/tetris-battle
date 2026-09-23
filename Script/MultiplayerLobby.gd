@@ -13,17 +13,36 @@ class_name MultiplayerLobby
 ## 交給 RoomLobby.tscn（見 _open_room_lobby()），不自己處理「連線成功後」
 ## 的畫面。
 
+## 2026-09-22：版面改成跟 Lobby/Board/Battle 同一套「直向/橫向各一份可排版
+## 場景檔」做法（`Scenes/MultiplayerLobbyLayoutPortrait.tscn`／
+## `...Landscape.tscn`），拿掉原本 CenterContainer/PanelContainer 那套自動
+## 置中框，換成每個欄位獨立節點、使用者自己排位置。會動態變化的東西（狀態
+## 文字/搜尋框內容/房間列表按鈕/按鈕 disabled 狀態）兩份都要同步寫，不是只
+## 寫目前生效那份——玩家隨時可能轉裝置。
 @onready var background: ColorRect = $Background
-@onready var host_button: Button = $CenterContainer/Panel/Margin/Layout/ModeRow/HostModeButton
-@onready var join_button: Button = $CenterContainer/Panel/Margin/Layout/ModeRow/JoinModeButton
-@onready var close_button: Button = $CenterContainer/Panel/Margin/Layout/TopBar/CloseButton
-@onready var status_label: Label = $CenterContainer/Panel/Margin/Layout/StatusLabel
-@onready var search_edit: LineEdit = $CenterContainer/Panel/Margin/Layout/SearchEdit
-@onready var room_list_scroll: ScrollContainer = $CenterContainer/Panel/Margin/Layout/RoomListScroll
-@onready var room_list_content: VBoxContainer = $CenterContainer/Panel/Margin/Layout/RoomListScroll/RoomListContent
+@onready var portrait_layout: Control = $PortraitLayout
+@onready var landscape_layout: Control = $LandscapeLayout
+@onready var host_button_portrait: Button = $PortraitLayout/HostModeButton
+@onready var host_button_landscape: Button = $LandscapeLayout/HostModeButton
+@onready var join_button_portrait: Button = $PortraitLayout/JoinModeButton
+@onready var join_button_landscape: Button = $LandscapeLayout/JoinModeButton
+@onready var close_button_portrait: Button = $PortraitLayout/CloseButton
+@onready var close_button_landscape: Button = $LandscapeLayout/CloseButton
+@onready var status_label_portrait: Label = $PortraitLayout/StatusLabel
+@onready var status_label_landscape: Label = $LandscapeLayout/StatusLabel
+@onready var search_edit_portrait: LineEdit = $PortraitLayout/SearchEdit
+@onready var search_edit_landscape: LineEdit = $LandscapeLayout/SearchEdit
+@onready var room_list_scroll_portrait: ScrollContainer = $PortraitLayout/RoomListScroll
+@onready var room_list_scroll_landscape: ScrollContainer = $LandscapeLayout/RoomListScroll
+@onready var room_list_content_portrait: VBoxContainer = $PortraitLayout/RoomListScroll/RoomListContent
+@onready var room_list_content_landscape: VBoxContainer = $LandscapeLayout/RoomListScroll/RoomListContent
 
 const ROOM_BUTTON_HEIGHT := 64
-const ROOM_LOBBY_SCENE: PackedScene = preload("res://Scenes/RoomLobby.tscn")
+## 2026-09-21 第十三輪：改成疊加 RoomBattleSettings.tscn（房間資訊＋對戰規則
+## 合併成一個滿版 UI，見該檔案開頭說明），不再用舊的 RoomLobby.tscn——用法
+## （instantiate/add_child 疊加模式）完全沒變，下面的註解提到 RoomLobby.tscn
+## 的地方描述的還是同一套「疊上去/queue_free 收掉」慣例，只是換了場景檔案。
+const ROOM_LOBBY_SCENE: PackedScene = preload("res://Scenes/RoomBattleSettings.tscn")
 const PASSWORD_PROMPT_SCENE_STYLE_MARGIN := 24
 
 var _room_lobby_instance: Control = null
@@ -35,20 +54,28 @@ var _password_prompt_edit: LineEdit = null
 
 
 func _ready() -> void:
-	host_button.pressed.connect(_on_host_pressed)
-	join_button.pressed.connect(_on_join_pressed)
-	close_button.pressed.connect(_on_close_pressed)
-	search_edit.text_changed.connect(_on_search_text_changed)
+	host_button_portrait.pressed.connect(_on_host_pressed)
+	host_button_landscape.pressed.connect(_on_host_pressed)
+	join_button_portrait.pressed.connect(_on_join_pressed)
+	join_button_landscape.pressed.connect(_on_join_pressed)
+	close_button_portrait.pressed.connect(_on_close_pressed)
+	close_button_landscape.pressed.connect(_on_close_pressed)
+	search_edit_portrait.text_changed.connect(_on_search_text_changed)
+	search_edit_landscape.text_changed.connect(_on_search_text_changed)
 	MobileLineEditHelper.enable_touch_as_mouse()
-	MobileLineEditHelper.setup(search_edit)
+	MobileLineEditHelper.setup(search_edit_portrait)
+	MobileLineEditHelper.setup(search_edit_landscape)
 	MobileLineEditHelper.enable_defocus_on_background_tap(background)
 	NetworkManager.rooms_updated.connect(_refresh_room_list)
 	NetworkManager.connection_failed.connect(_on_connection_failed)
 	NetworkManager.joined_as_client.connect(_on_joined_as_client)
 	NetworkManager.room_join_rejected.connect(_on_join_rejected)
-	room_list_scroll.hide()
-	search_edit.hide()
-	status_label.text = "選擇「開房」或「搜尋房間」"
+	_set_room_list_visible(false)
+	_set_search_edit_visible(false)
+	_set_status_text("選擇「開房」或「搜尋房間」")
+
+	get_viewport().size_changed.connect(_apply_orientation_layout)
+	_apply_orientation_layout()
 
 	# 房主在 Board.tscn（見 NetworkManager.MATCH_SCENE_PATH）按下返回時
 	# （NetworkManager.end_match()）會把這個場景整個當成
@@ -57,9 +84,16 @@ func _ready() -> void:
 	# 沒斷，房主/連線端都還在房間裡，應該直接落地在 RoomLobby.tscn，不用
 	# 使用者手動重新開房/搜尋加入一次。
 	if multiplayer.multiplayer_peer != null:
-		host_button.disabled = true
-		join_button.disabled = true
+		_set_host_join_disabled(true)
 		_open_room_lobby()
+
+## 旋轉裝置、直向橫向比例翻轉時，切換顯示哪一組 PortraitLayout/
+## LandscapeLayout，跟 Lobby.gd/Board.gd 同一套做法。
+func _apply_orientation_layout() -> void:
+	var viewport_size := get_viewport_rect().size
+	var is_portrait := viewport_size.y >= viewport_size.x
+	portrait_layout.visible = is_portrait
+	landscape_layout.visible = not is_portrait
 
 
 ## 見 MobileLineEditHelper.enable_touch_as_mouse() 的說明——這個畫面關閉
@@ -73,64 +107,73 @@ func _exit_tree() -> void:
 ## 進去之後會立刻補送一次完整設定），這裡先給一個堪用的預設值，不強迫
 ## 玩家在這個畫面就要先想好名字才能開房。
 func _on_host_pressed() -> void:
-	room_list_scroll.hide()
-	search_edit.hide()
-	host_button.disabled = true
-	join_button.disabled = true
+	_set_room_list_visible(false)
+	_set_search_edit_visible(false)
+	_set_host_join_disabled(true)
 	var unique_suffix := OS.get_unique_id().substr(0, 6) if OS.get_unique_id() != "" else "房間"
 	if NetworkManager.host_game("%s 的房間" % unique_suffix):
-		status_label.text = ""
+		_set_status_text("")
 		_open_room_lobby()
 	else:
-		host_button.disabled = false
-		join_button.disabled = false
+		_set_host_join_disabled(false)
 
 
 func _on_join_pressed() -> void:
-	host_button.disabled = true
-	join_button.disabled = true
-	status_label.text = "搜尋房間中…"
-	room_list_scroll.show()
-	search_edit.show()
+	_set_host_join_disabled(true)
+	_set_status_text("搜尋房間中…")
+	_set_room_list_visible(true)
+	_set_search_edit_visible(true)
 	NetworkManager.start_discovery()
 
 
-func _on_search_text_changed(_new_text: String) -> void:
+## 兩份 SearchEdit（直向/橫向）只有使用者正在看的那份會真的被打字，這裡先
+## 把內容同步到另一份（設定 .text 不會再觸發 text_changed，不會無限迴圈），
+## 這樣轉裝置時另一份不會顯示過期內容，也不影響搜尋過濾邏輯只認一份文字。
+func _on_search_text_changed(new_text: String) -> void:
+	search_edit_portrait.text = new_text
+	search_edit_landscape.text = new_text
 	_refresh_room_list()
 
 
 ## 【2026-09-20，見使用者需求：房名搜尋＋密碼鎖頭＋已滿鎖住】依搜尋文字
 ## 過濾（房名包含搜尋字串，不分大小寫），密碼保護的房間加鎖頭圖示，已滿
 ## 的房間顯示「已滿」並停用按鈕——都在這裡的文字/disabled 上直接處理，
-## 不需要另外做自訂按鈕場景。
+## 不需要另外做自訂按鈕場景。2026-09-22：直向/橫向各自的 RoomListContent
+## 都要各生成一份按鈕（跟 OpponentPanel 的做法一樣），不是共用同一個節點。
 func _refresh_room_list() -> void:
-	for child in room_list_content.get_children():
+	for child in room_list_content_portrait.get_children():
+		child.queue_free()
+	for child in room_list_content_landscape.get_children():
 		child.queue_free()
 	var rooms := NetworkManager.get_discovered_rooms()
-	var filter := search_edit.text.strip_edges().to_lower()
+	var filter := search_edit_portrait.text.strip_edges().to_lower()
 	var filtered: Array = []
 	for room in rooms:
 		if filter == "" or (room["name"] as String).to_lower().contains(filter):
 			filtered.append(room)
 	if rooms.is_empty():
-		status_label.text = "搜尋房間中…（尚未找到）"
+		_set_status_text("搜尋房間中…（尚未找到）")
 		return
 	if filtered.is_empty():
-		status_label.text = "找到 %d 個房間，但沒有符合搜尋的結果" % rooms.size()
+		_set_status_text("找到 %d 個房間，但沒有符合搜尋的結果" % rooms.size())
 		return
-	status_label.text = "找到 %d 個房間，點選加入" % filtered.size()
+	_set_status_text("找到 %d 個房間，點選加入" % filtered.size())
 	for room in filtered:
-		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(0, ROOM_BUTTON_HEIGHT)
-		var current_players: int = room.get("current_players", 1)
-		var max_players: int = room.get("max_players", 2)
-		var is_full := current_players >= max_players
-		var lock_icon := "🔒 " if room.get("has_password", false) else ""
-		var status_text := "（已滿）" if is_full else "（%d/%d）" % [current_players, max_players]
-		btn.text = "%s%s %s" % [lock_icon, room["name"], status_text]
-		btn.disabled = is_full
-		btn.pressed.connect(_on_room_selected.bind(room))
-		room_list_content.add_child(btn)
+		room_list_content_portrait.add_child(_build_room_button(room))
+		room_list_content_landscape.add_child(_build_room_button(room))
+
+func _build_room_button(room: Dictionary) -> Button:
+	var btn := Button.new()
+	btn.custom_minimum_size = Vector2(0, ROOM_BUTTON_HEIGHT)
+	var current_players: int = room.get("current_players", 1)
+	var max_players: int = room.get("max_players", 2)
+	var is_full := current_players >= max_players
+	var lock_icon := "🔒 " if room.get("has_password", false) else ""
+	var status_text := "（已滿）" if is_full else "（%d/%d）" % [current_players, max_players]
+	btn.text = "%s%s %s" % [lock_icon, room["name"], status_text]
+	btn.disabled = is_full
+	btn.pressed.connect(_on_room_selected.bind(room))
+	return btn
 
 
 func _on_room_selected(room: Dictionary) -> void:
@@ -142,8 +185,10 @@ func _on_room_selected(room: Dictionary) -> void:
 
 
 func _start_join(room: Dictionary, password: String) -> void:
-	status_label.text = "連線中…"
-	for child in room_list_content.get_children():
+	_set_status_text("連線中…")
+	for child in room_list_content_portrait.get_children():
+		(child as Button).disabled = true
+	for child in room_list_content_landscape.get_children():
 		(child as Button).disabled = true
 	NetworkManager.join_game(room["address"], room["port"], password)
 
@@ -260,19 +305,19 @@ func _on_joined_as_client() -> void:
 func _on_join_rejected(reason: String) -> void:
 	if is_instance_valid(_room_lobby_instance):
 		return
-	status_label.text = reason
-	host_button.disabled = false
-	join_button.disabled = false
-	for child in room_list_content.get_children():
+	_set_status_text(reason)
+	_set_host_join_disabled(false)
+	for child in room_list_content_portrait.get_children():
+		(child as Button).disabled = false
+	for child in room_list_content_landscape.get_children():
 		(child as Button).disabled = false
 
 
 func _on_connection_failed(reason: String) -> void:
-	status_label.text = reason
-	host_button.disabled = false
-	join_button.disabled = false
-	room_list_scroll.hide()
-	search_edit.hide()
+	_set_status_text(reason)
+	_set_host_join_disabled(false)
+	_set_room_list_visible(false)
+	_set_search_edit_visible(false)
 
 
 func _open_room_lobby() -> void:
@@ -287,11 +332,29 @@ func _open_room_lobby() -> void:
 ## 原本的房間搜尋狀態，讓玩家可以重新選擇開房或搜尋房間。
 func _on_room_lobby_closed() -> void:
 	_room_lobby_instance = null
-	host_button.disabled = false
-	join_button.disabled = false
-	room_list_scroll.hide()
-	search_edit.hide()
-	status_label.text = "選擇「開房」或「搜尋房間」"
+	_set_host_join_disabled(false)
+	_set_room_list_visible(false)
+	_set_search_edit_visible(false)
+	_set_status_text("選擇「開房」或「搜尋房間」")
+
+## 直向/橫向兩份都要同步寫的小工具函式，見上方檔案說明。
+func _set_status_text(text: String) -> void:
+	status_label_portrait.text = text
+	status_label_landscape.text = text
+
+func _set_host_join_disabled(disabled: bool) -> void:
+	host_button_portrait.disabled = disabled
+	host_button_landscape.disabled = disabled
+	join_button_portrait.disabled = disabled
+	join_button_landscape.disabled = disabled
+
+func _set_room_list_visible(v: bool) -> void:
+	room_list_scroll_portrait.visible = v
+	room_list_scroll_landscape.visible = v
+
+func _set_search_edit_visible(v: bool) -> void:
+	search_edit_portrait.visible = v
+	search_edit_landscape.visible = v
 
 
 ## 【2026-09-20】平常這個畫面是疊加在 Lobby.tscn 上面的子節點（見

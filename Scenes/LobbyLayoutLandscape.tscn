@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="LobbyLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="TitleLabel" type="Label" parent="."]
+offset_left = 660.0
+offset_top = 120.0
+offset_right = 1260.0
+offset_bottom = 180.0
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 1
+text = "俄羅斯方塊對戰"
+
+[node name="SoloPlayCell" type="Button" parent="."]
+offset_left = 560.0
+offset_top = 300.0
+offset_right = 860.0
+offset_bottom = 620.0
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "單人遊玩"
+
+[node name="OnlineBattleCell" type="Button" parent="."]
+offset_left = 880.0
+offset_top = 300.0
+offset_right = 1180.0
+offset_bottom = 620.0
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "本地連線
+（同 WiFi）"
+
+[node name="EndlessCell" type="Button" parent="."]
+offset_left = 1200.0
+offset_top = 300.0
+offset_right = 1500.0
+offset_bottom = 620.0
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "無盡挑戰"
+
+[node name="SettingsButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "⚙"

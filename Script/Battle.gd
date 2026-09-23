@@ -1,0 +1,775 @@
+## 對戰畫面（見 memory/tetris_multiplayer_battle_design.md 第 6~8/10~12 節）。
+## 本地玩家的輸入/DAS-ARR 邏輯直接比照 `Board.gd`；棋盤畫面呼叫共用的
+## `TetrisBoardRenderer.gd`。單一輪的對戰規則（垃圾行/抵消/結算/淘汰）全部在
+## `BattleDirector.gd` 裡；這裡負責：本地玩家輸入、畫面、開場倒數、
+## 指定目標攻擊的觸控選目標、**bo-N 多輪迴圈**（贏 `BattleSettings.rounds_to_win`
+## 場才算贏整場，用星星顯示戰績）。
+## 版面 2026-09-21 改成場景裡用 Control+anchor 真的排版，而且直向/橫向是
+## 兩個完全獨立的場景檔（`Scenes/BattleLayoutPortrait.tscn`／
+## `Scenes/BattleLayoutLandscape.tscn`），`Battle.tscn` 的 `BoardLayer` 底下
+## 用 instance 把兩份都放進來、只顯示其中一份——要調整版面直接開對應那個
+## 場景檔編輯（各自的根節點就是設計基準尺寸 1080x1920／1920x1080，還有一個
+## 只在編輯器顯示的 `FrameGuide` 框線標出範圍），不用在 Battle.tscn 裡改。
+## 兩份場景裡都有 `BoardAnchor`（整個 10x20 棋盤要畫在哪個範圍，cell_size
+## 從這個節點的 size 除以 10/20 算出來）/`CellAnchor`（單一格的位置+大小，
+## 2026-09-21 起不再拿來算 cell_size，純粹留給之後要放「一格一格」重複背景
+## 素材時當參考）/`HoldPanel`+`HoldLabel`/`NextPanel`+`NextLabel`/
+## `SettlementBar`（結算倒數條）/`PendingDotsAnchor`（待定點點直條的起點，
+## 之後點點要換成圖片就是這裡）/`StarsLabel`（2026-09-22 新增：bo-N 戰績星星，
+## 使用者自己排位置、之後可換圖片素材，不再跟結算文字綁在同一個
+## VBoxContainer 裡）/8 個觸控按鈕（含 2026-09-22 新增的 `PauseButton`，
+## 貼圖已經接好）/`OpponentSlots1`/`OpponentSlots2`/`OpponentSlots3`（對手
+## 縮小盤面要畫在哪個範圍，依「目前對手人數」1~3 三選一顯示，每個是一個
+## 容器底下放 N 個手排的 Slot 節點——人數變了版面就整個換，不是同一組節點
+## 自動撐大縮小）。對手縮小盤面本體（`OpponentPanel.gd`）由
+## `_rebuild_opponent_panels()` 動態生成、塞進對應人數那組的 Slot 節點底下，
+## 直向/橫向各自生成一份互不共用（切換方向時靠父節點 visible 一起隱藏，
+## 不用重新生成）。
+## 暫停（2026-09-22 新增，同日稍晚改成可排版場景）：`PauseLayer` 底下固定
+## 一片不分方向、滿版的 `Backdrop`（半透明黑底，讓暫停畫面看起來懸浮在遊戲
+## 上面，兩個方向都一樣不用排）＋直向/橫向各一份可排版場景檔
+## （`Scenes/BattlePauseLayoutPortrait.tscn`／`...Landscape.tscn`，跟棋盤版面
+## 同一套 instance 進 `PortraitLayout`/`LandscapeLayout`、跟著
+## `_apply_orientation_layout()` 切換的做法），裡面放 `PauseLabel`/
+## `PauseCountdownLabel`（倒數恢復用）/`ResumeButton`/`LeaveButton`/
+## `VoteDotsLabel`（多人離開投票用）。單人 vs AI（目前唯一連得到這個場景的
+## 路徑，用 `BattleSettings.is_solo_mode` 判斷——實測過
+## `multiplayer.has_multiplayer_peer()` 這個底層連線旗標不可靠，見
+## `_on_pause_pressed()` 的說明）按暫停沒有次數限制、立刻暫停；多人改成
+## 「每人整場一次機會、任何人按繼續大家一起倒數恢復、離開要過半數投票」，
+## 照 `NetworkManager.gd` 既有的 RPC 慣例寫在這個檔案下半部——連線多人對戰
+## 目前還沒接到 `Battle.tscn`（`NetworkManager.MATCH_SCENE_PATH` 還指向舊的
+## `Board.tscn` 佔位場景），這段連不到、沒辦法實機驗證,是使用者 2026-09-22
+## 明確要求先寫好、之後接上連線對戰再一起驗證的。暫停鍵本身走
+## `input_action`（"tetris_pause"）+ 輪詢 `is_action_just_pressed`（跟其他
+## 7 個觸控按鈕同一套機制），不是連 Button 的 `pressed`/`button_up` 訊號——
+## 手機實測那條路徑不可靠。
+## 結算畫面（`ResultLayer`）同一套做法拆成 `Scenes/BattleResultLayoutPortrait.tscn`／
+## `...Landscape.tscn`，放 `ResultLabel`/`ReturnButton`（bo-N 戰績星星已經
+## 移到棋盤版面常態顯示，不在這裡，見 `StarsLabel` 的說明）。HUD 文字
+## （分數/消行/等級/開場倒數）同一天也拆成
+## `Scenes/BattleHudLayoutPortrait.tscn`／`...Landscape.tscn`，每個文字都是
+## 獨立節點、使用者自己排位置。
+extends Node2D
+
+const DAS_SEC := 0.2
+const ARR_SEC := 0.05
+const COUNTDOWN_SECONDS := 3.0
+
+## HUD 文字 2026-09-22 起併回 BattleLayoutPortrait/Landscape.tscn 跟棋盤/按鈕
+## 同一個檔案（原本分開放在 BattleHudLayoutPortrait/Landscape.tscn，使用者
+## 反應分成兩個檔案不方便一起排版）——所以路徑是 $BoardLayer/... 不是
+## $HUD/...，不再有獨立的 HUD CanvasLayer。
+@onready var score_label_portrait: Label = $BoardLayer/PortraitLayout/ScoreLabel
+@onready var score_label_landscape: Label = $BoardLayer/LandscapeLayout/ScoreLabel
+@onready var lines_label_portrait: Label = $BoardLayer/PortraitLayout/LinesLabel
+@onready var lines_label_landscape: Label = $BoardLayer/LandscapeLayout/LinesLabel
+@onready var level_label_portrait: Label = $BoardLayer/PortraitLayout/LevelLabel
+@onready var level_label_landscape: Label = $BoardLayer/LandscapeLayout/LevelLabel
+@onready var countdown_label_portrait: Label = $BoardLayer/PortraitLayout/CountdownLabel
+@onready var countdown_label_landscape: Label = $BoardLayer/LandscapeLayout/CountdownLabel
+
+@onready var portrait_layout: Control = $BoardLayer/PortraitLayout
+@onready var landscape_layout: Control = $BoardLayer/LandscapeLayout
+## 2026-09-22 起，這五個「盤面相關」節點改用 find_child() 在整個 Portrait/
+## LandscapeLayout 子樹裡搜尋名字，不再寫死 `$BoardLayer/.../XXX` 的完整路徑
+## ——因為使用者會在編輯器裡把 SettlementBar/PendingDotsAnchor 這類節點拖進
+## BoardAnchor 底下（讓它們「跟著盤面走」的直覺操作），不管巢狀幾層、以後
+## 又搬去哪個節點底下，只要名字沒改，這裡都找得到，不會再因為重新掛父節點
+## 就整個 null 掉。按鈕類節點沒有這個問題（使用者不會去動它們的父節點），
+## 維持原本寫死路徑就好，不用全部都改。
+@onready var board_anchor_portrait: Control = portrait_layout.find_child("BoardAnchor", true, false) as Control
+@onready var hold_panel_portrait: Control = portrait_layout.find_child("HoldPanel", true, false) as Control
+@onready var next_panel_portrait: Control = portrait_layout.find_child("NextPanel", true, false) as Control
+@onready var settlement_bar_portrait: Control = portrait_layout.find_child("SettlementBar", true, false) as Control
+@onready var pending_dots_anchor_portrait: PendingDotsAnchor = portrait_layout.find_child("PendingDotsAnchor", true, false) as PendingDotsAnchor
+@onready var board_anchor_landscape: Control = landscape_layout.find_child("BoardAnchor", true, false) as Control
+@onready var hold_panel_landscape: Control = landscape_layout.find_child("HoldPanel", true, false) as Control
+@onready var next_panel_landscape: Control = landscape_layout.find_child("NextPanel", true, false) as Control
+@onready var settlement_bar_landscape: Control = landscape_layout.find_child("SettlementBar", true, false) as Control
+@onready var pending_dots_anchor_landscape: PendingDotsAnchor = landscape_layout.find_child("PendingDotsAnchor", true, false) as PendingDotsAnchor
+
+## 手勢操作開關（PlayerSettings.gesture_controls_enabled）：開啟時這六顆按鈕
+## 隱藏，改用 GestureZone（右側：滑動旋轉/到底＋雙擊 hold）/MoveGestureZone
+## （左側：滑動方向決定移動/軟降，按住加速）偵測手勢，見 _apply_gesture_controls()。
+@onready var rotate_ccw_button_portrait: Control = $BoardLayer/PortraitLayout/RotateCCWButton
+@onready var rotate_cw_button_portrait: Control = $BoardLayer/PortraitLayout/RotateCWButton
+@onready var hard_drop_button_portrait: Control = $BoardLayer/PortraitLayout/HardDropButton
+@onready var gesture_zone_portrait: Control = $BoardLayer/PortraitLayout/GestureZone
+@onready var move_left_button_portrait: Control = $BoardLayer/PortraitLayout/MoveLeftButton
+@onready var move_right_button_portrait: Control = $BoardLayer/PortraitLayout/MoveRightButton
+@onready var soft_drop_button_portrait: Control = $BoardLayer/PortraitLayout/SoftDropButton
+@onready var move_gesture_zone_portrait: Control = $BoardLayer/PortraitLayout/MoveGestureZone
+@onready var hold_button_portrait: Control = $BoardLayer/PortraitLayout/HoldButton
+@onready var rotate_ccw_button_landscape: Control = $BoardLayer/LandscapeLayout/RotateCCWButton
+@onready var rotate_cw_button_landscape: Control = $BoardLayer/LandscapeLayout/RotateCWButton
+@onready var hard_drop_button_landscape: Control = $BoardLayer/LandscapeLayout/HardDropButton
+@onready var gesture_zone_landscape: Control = $BoardLayer/LandscapeLayout/GestureZone
+@onready var move_left_button_landscape: Control = $BoardLayer/LandscapeLayout/MoveLeftButton
+@onready var move_right_button_landscape: Control = $BoardLayer/LandscapeLayout/MoveRightButton
+@onready var soft_drop_button_landscape: Control = $BoardLayer/LandscapeLayout/SoftDropButton
+@onready var move_gesture_zone_landscape: Control = $BoardLayer/LandscapeLayout/MoveGestureZone
+@onready var hold_button_landscape: Control = $BoardLayer/LandscapeLayout/HoldButton
+
+## 對手縮小盤面依人數（1~3）分開排版，見上方檔案說明。索引 0=1 人、1=2 人、
+## 2=3 人；直向/橫向各自一組，靠父節點（PortraitLayout/LandscapeLayout）
+## visible 一起切換,不用另外處理。
+@onready var opponent_slots_portrait: Array[Control] = [
+	$BoardLayer/PortraitLayout/OpponentSlots1,
+	$BoardLayer/PortraitLayout/OpponentSlots2,
+	$BoardLayer/PortraitLayout/OpponentSlots3,
+]
+@onready var opponent_slots_landscape: Array[Control] = [
+	$BoardLayer/LandscapeLayout/OpponentSlots1,
+	$BoardLayer/LandscapeLayout/OpponentSlots2,
+	$BoardLayer/LandscapeLayout/OpponentSlots3,
+]
+
+@onready var result_layer: CanvasLayer = $ResultLayer
+@onready var result_layout_portrait: Control = $ResultLayer/PortraitLayout
+@onready var result_layout_landscape: Control = $ResultLayer/LandscapeLayout
+@onready var result_label_portrait: Label = $ResultLayer/PortraitLayout/ResultLabel
+@onready var result_label_landscape: Label = $ResultLayer/LandscapeLayout/ResultLabel
+@onready var return_button_portrait: Button = $ResultLayer/PortraitLayout/ReturnButton
+@onready var return_button_landscape: Button = $ResultLayer/LandscapeLayout/ReturnButton
+
+## 2026-09-22：勝利星星移出結算文字下方的 VBoxContainer，改成場景裡跟
+## HOLD/NEXT 標籤同一套做法的可排版節點（`StarsLabel`），使用者自己排位置、
+## 之後也可以換成圖片素材，不用再靠 VBoxContainer 自動疊在文字下面。
+@onready var stars_label_portrait: Label = $BoardLayer/PortraitLayout/StarsLabel
+@onready var stars_label_landscape: Label = $BoardLayer/LandscapeLayout/StarsLabel
+
+@onready var pause_layer: CanvasLayer = $PauseLayer
+@onready var pause_layout_portrait: Control = $PauseLayer/PortraitLayout
+@onready var pause_layout_landscape: Control = $PauseLayer/LandscapeLayout
+@onready var pause_countdown_label_portrait: Label = $PauseLayer/PortraitLayout/PauseCountdownLabel
+@onready var pause_countdown_label_landscape: Label = $PauseLayer/LandscapeLayout/PauseCountdownLabel
+@onready var pause_resume_button_portrait: Button = $PauseLayer/PortraitLayout/ResumeButton
+@onready var pause_resume_button_landscape: Button = $PauseLayer/LandscapeLayout/ResumeButton
+@onready var pause_leave_button_portrait: Button = $PauseLayer/PortraitLayout/LeaveButton
+@onready var pause_leave_button_landscape: Button = $PauseLayer/LandscapeLayout/LeaveButton
+@onready var pause_vote_dots_label_portrait: Label = $PauseLayer/PortraitLayout/VoteDotsLabel
+@onready var pause_vote_dots_label_landscape: Label = $PauseLayer/LandscapeLayout/VoteDotsLabel
+
+var _director: BattleDirector
+var _local_peer_id: int = 1
+var _local_participant: BattleParticipant
+
+var _move_dir: int = 0
+var _das_timer: float = 0.0
+var _arr_timer: float = 0.0
+
+var _cell_size: float = 24.0
+var _board_origin: Vector2 = Vector2.ZERO
+
+## pid -> Array[OpponentPanel]（直向/橫向各一份，見上方檔案說明），隨每一輪
+## 的參與者名單重新生成（見 _rebuild_opponent_panels()）。
+var _opponent_panels: Dictionary = {}
+
+var _countdown_remaining: float = COUNTDOWN_SECONDS
+var _match_started: bool = false
+
+## bo-N 戰績：team_index -> 已經贏的回合數，整場比賽期間持續累加（跨回合
+## 不歸零，只有整場比賽結束、返回大廳才會消失）。
+var _team_round_wins: Dictionary = {}
+## true＝結果畫面按下去要進下一輪；false＝已經整場結束，按下去回大廳。
+var _pending_next_round: bool = false
+
+const RESUME_COUNTDOWN_SECONDS := 3.0
+
+## 暫停/離開投票：單人（solo vs AI，BattleSettings.is_solo_mode==true）
+## 完全走本機分支,不用 RPC——目前唯一連得到 Battle.tscn 的路徑就是單人,見
+## 上方檔案說明。多人分支照現有 NetworkManager.gd 的「client 請求→host 驗證
+## →host 廣播」慣例先寫好，但連線多人對戰目前還沒有接到 Battle.tscn（
+## NetworkManager.MATCH_SCENE_PATH 還是指向舊的 Board.tscn 佔位場景），這段
+## 目前連不到、沒辦法實機驗證，是使用者 2026-09-22 明確要求先寫好、之後接上
+## 連線對戰再一起驗證的。
+var _is_paused: bool = false
+var _is_resume_counting_down: bool = false
+var _resume_countdown_remaining: float = 0.0
+## 這個 peer 自己這整場比賽（含 bo-N 所有輪次）用掉了沒有——多人才有「一人
+## 一次」的限制，不會在 _start_round() 重置（見 RPC 說明）。
+var _local_pause_used: bool = false
+## host 端專用記錄：peer_id -> true，誰已經用過那一次暫停機會。
+var _pause_used_by: Dictionary = {}
+## host 端專用記錄：peer_id -> true，誰投票要離開——每一輪重新開始時清空
+## （見 _start_round()），跟 _pause_used_by/_local_pause_used 是整場比賽
+## 才重置的規則不同。
+var _leave_votes: Dictionary = {}
+
+func _ready() -> void:
+	_local_peer_id = multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
+	_team_round_wins.clear()
+	return_button_portrait.pressed.connect(_on_result_button_pressed)
+	return_button_landscape.pressed.connect(_on_result_button_pressed)
+	get_viewport().size_changed.connect(_apply_orientation_layout)
+
+	pause_layer.visible = false
+	pause_resume_button_portrait.pressed.connect(_on_pause_resume_pressed)
+	pause_resume_button_landscape.pressed.connect(_on_pause_resume_pressed)
+	pause_leave_button_portrait.pressed.connect(_on_pause_leave_pressed)
+	pause_leave_button_landscape.pressed.connect(_on_pause_leave_pressed)
+
+	PlayerSettings.settings_changed.connect(_apply_gesture_controls)
+	_apply_gesture_controls()
+
+	_start_round()
+
+## 這台裝置對這場對戰是不是「host 權威」——AI 只能有一台裝置真正模擬、
+## 攻擊/垃圾行結算跟回合勝負判定也只能有一台裝置真正算（見
+## BattleDirector._is_host_authority 的說明），傳給 BattleDirector 決定
+## 哪些參與者在這台裝置上是 is_local。單人/AI 對戰沒有連線，永遠是權威；
+## 連線對戰要跟房主（NetworkManager.room_owner_peer_id，不是「是不是
+## HOST_PEER_ID」——見 NetworkManager.gd 開頭的說明，兩者刻意分開）比對。
+func _is_host_authority() -> bool:
+	if BattleSettings.is_solo_mode or not multiplayer.has_multiplayer_peer():
+		return true
+	return multiplayer.get_unique_id() == NetworkManager.room_owner_peer_id
+
+## 開始新的一輪：整場比賽期間會呼叫好幾次（bo-N 每輪都是全新盤面），
+## _team_round_wins 不會在這裡重置。
+func _start_round() -> void:
+	_director = BattleDirector.new(BattleSettings.network_match_seed, _local_peer_id, _is_host_authority())
+	_local_participant = _director.participants.get(_local_peer_id)
+	_director.round_ended.connect(_on_round_ended)
+	_director.garbage_settled.connect(_on_garbage_settled)
+	_director.participant_eliminated.connect(_on_participant_eliminated)
+
+	_set_score_text("分數: 0")
+	_set_lines_text("消行: 0")
+	_set_level_text("等級: 1")
+	if _local_participant:
+		_local_participant.controller.score_changed.connect(_on_score_changed)
+		_local_participant.controller.lines_cleared.connect(_on_lines_cleared)
+		_local_participant.controller.level_changed.connect(_on_level_changed)
+
+	_rebuild_opponent_panels()
+	_apply_orientation_layout()
+
+	result_layer.visible = false
+	## 2026-09-22：星星常態顯示在版面上（不再只有結算畫面才出現）——這裡先用
+	## 「這一輪開始前」的戰績填一次，讓玩家整局遊玩期間都看得到目前戰況；
+	## _on_round_ended() 那邊算完這輪結果後會再刷新一次文字。
+	_refresh_stars_display()
+	_move_dir = 0
+	_das_timer = 0.0
+	_arr_timer = 0.0
+	_countdown_remaining = COUNTDOWN_SECONDS
+	_match_started = false
+	_set_countdown_visible(true)
+
+	_is_paused = false
+	_is_resume_counting_down = false
+	pause_layer.visible = false
+	pause_vote_dots_label_portrait.visible = false
+	pause_vote_dots_label_landscape.visible = false
+	_leave_votes.clear()
+
+## 旋轉裝置、直向橫向比例翻轉時，切換顯示哪一組 PortraitLayout/
+## LandscapeLayout——棋盤/HOLD/NEXT/結算條/點點欄/觸控按鈕的位置全部是那個
+## 場景檔裡的節點決定，這裡不用再算。暫停/結算彈窗（2026-09-22 起也拆成
+## 直向/橫向各一份可排版場景檔）一起跟著切，不管目前彈窗有沒有顯示都先切好
+## ——彈窗真的跳出來的那一刻，裡面顯示的就已經是正確方向那份。沒翻轉時
+## 重複呼叫也沒差，不用自己追蹤上次的方向。
+func _apply_orientation_layout() -> void:
+	var viewport_size := get_viewport_rect().size
+	var is_portrait := viewport_size.y >= viewport_size.x
+	portrait_layout.visible = is_portrait
+	landscape_layout.visible = not is_portrait
+	pause_layout_portrait.visible = is_portrait
+	pause_layout_landscape.visible = not is_portrait
+	result_layout_portrait.visible = is_portrait
+	result_layout_landscape.visible = not is_portrait
+
+## PlayerSettings.gesture_controls_enabled 開啟時把左右旋轉/直接到底三顆按鈕
+## 藏起來、換成 GestureZone 接手滑動手勢；兩份方向都要切，不是只切目前生效
+## 那份（跟其他設定一樣，切換方向時不能有殘留舊狀態）。
+func _apply_gesture_controls() -> void:
+	var use_gestures := PlayerSettings.gesture_controls_enabled
+	for button in [rotate_ccw_button_portrait, rotate_cw_button_portrait, hard_drop_button_portrait,
+			move_left_button_portrait, move_right_button_portrait, soft_drop_button_portrait, hold_button_portrait,
+			rotate_ccw_button_landscape, rotate_cw_button_landscape, hard_drop_button_landscape,
+			move_left_button_landscape, move_right_button_landscape, soft_drop_button_landscape, hold_button_landscape]:
+		button.visible = not use_gestures
+		button.mouse_filter = Control.MOUSE_FILTER_IGNORE if use_gestures else Control.MOUSE_FILTER_STOP
+	for zone in [gesture_zone_portrait, gesture_zone_landscape, move_gesture_zone_portrait, move_gesture_zone_landscape]:
+		zone.visible = use_gestures
+		zone.mouse_filter = Control.MOUSE_FILTER_STOP if use_gestures else Control.MOUSE_FILTER_IGNORE
+
+## 依目前對手人數（1~3，超過 3 個先卡在 3 人那組版面，多出來的人重複塞進
+## 最後一個 Slot——目前單人模式最多 3 隻 AI 碰不到這個上限，之後連線多人
+## 真的會超過 3 個對手時再回來加第 4/5...組版面）挑對應那組 OpponentSlots，
+## 直向/橫向各生成一份 OpponentPanel（不共用同一個節點，切換方向時才不用
+## 重新生成，只是跟著父節點一起隱藏）。
+func _rebuild_opponent_panels() -> void:
+	for slots_group in opponent_slots_portrait + opponent_slots_landscape:
+		for slot in slots_group.get_children():
+			for child in slot.get_children():
+				child.queue_free()
+	_opponent_panels.clear()
+
+	var opponent_ids: Array = []
+	for pid in _director.participants:
+		if pid != _local_peer_id:
+			opponent_ids.append(pid)
+
+	var count := clampi(opponent_ids.size(), 1, 3)
+	for i in range(opponent_slots_portrait.size()):
+		opponent_slots_portrait[i].visible = (i == count - 1)
+		opponent_slots_landscape[i].visible = (i == count - 1)
+
+	var portrait_slots := opponent_slots_portrait[count - 1].get_children()
+	var landscape_slots := opponent_slots_landscape[count - 1].get_children()
+	for i in range(opponent_ids.size()):
+		var pid: int = opponent_ids[i]
+		var slot_index := i % portrait_slots.size()
+		_opponent_panels[pid] = [
+			_spawn_opponent_panel(pid, portrait_slots[slot_index]),
+			_spawn_opponent_panel(pid, landscape_slots[slot_index]),
+		]
+
+func _spawn_opponent_panel(pid: int, slot: Control) -> OpponentPanel:
+	var panel := OpponentPanel.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.participant = _director.participants[pid]
+	panel.pid = pid
+	## 這個對手所在隊伍目前的 bo-N 戰績星星（跟本地玩家版面上那顆共用同一套
+	## _stars_for_team()）——每輪開始時 _rebuild_opponent_panels() 都會重新
+	## 生成面板，這裡設一次就好，不用另外做「戰績改變就刷新」的機制。
+	panel.stars_text = _stars_for_team(panel.participant.team_index, maxi(BattleSettings.rounds_to_win, 1))
+	panel.panel_tapped.connect(_on_opponent_panel_tapped)
+	slot.add_child(panel)
+	return panel
+
+func _process(delta: float) -> void:
+	## 2026-09-22：暫停鍵改成跟其他 7 個按鈕一樣走 input_action + 輪詢
+	## is_action_just_pressed（不再連 Button 的 pressed/button_up 訊號）——
+	## 使用者回報連了 button_up 之後手機上按鈕本身有反應（會變色）,但遊戲
+	## 邏輯完全沒被觸發,可見問題出在「Button 訊號」這條路徑本身在那台裝置
+	## 上不可靠,不是接錯訊號。改用跟其他按鈕完全相同、已確認會動的機制。
+	if Input.is_action_just_pressed("tetris_pause"):
+		_on_pause_pressed()
+
+	if not _match_started:
+		_countdown_remaining -= delta
+		if _countdown_remaining > 0.0:
+			_set_countdown_text(str(ceili(_countdown_remaining)))
+		elif _countdown_remaining > -0.6:
+			_set_countdown_text("GO!")
+		else:
+			_match_started = true
+			_set_countdown_visible(false)
+		queue_redraw()
+		return
+
+	if _is_paused:
+		if _is_resume_counting_down:
+			_resume_countdown_remaining -= delta
+			if _resume_countdown_remaining <= 0.0:
+				_is_resume_counting_down = false
+				_is_paused = false
+				pause_layer.visible = false
+			else:
+				var countdown_text := str(ceili(_resume_countdown_remaining))
+				pause_countdown_label_portrait.text = countdown_text
+				pause_countdown_label_landscape.text = countdown_text
+		return
+
+	if _local_participant and not _local_participant.is_eliminated:
+		_handle_input(delta)
+	_director.tick(delta)
+	_refresh_opponent_panels()
+	queue_redraw()
+
+## 指定目標攻擊：房間設定開啟時，每個 OpponentPanel 自己會用 gui_input 偵測
+## 觸控/點擊（見 OpponentPanel.gd），這裡只負責收訊號、轉呼叫
+## BattleDirector.set_manual_target()，不用再自己算全域座標命中測試。
+func _on_opponent_panel_tapped(pid: int) -> void:
+	if not _match_started or not BattleSettings.targeted_attack:
+		return
+	if not _local_participant or _local_participant.is_eliminated:
+		return
+	_director.set_manual_target(_local_participant.id, pid)
+
+func _refresh_opponent_panels() -> void:
+	for pid in _opponent_panels:
+		var is_target: bool = BattleSettings.targeted_attack and _local_participant != null \
+			and _local_participant.current_target_id == pid
+		for panel: OpponentPanel in _opponent_panels[pid]:
+			panel.is_target = is_target
+			panel.queue_redraw()
+
+## 暫停鍵：單人（solo vs AI）沒有次數限制、按下立刻暫停；多人每人整場只有
+## 一次機會，送出去給 host 仲裁（見 _request_pause()），自己不會立刻暫停,
+## 要等 host 廣播回來（_broadcast_pause()）才真的暫停——這樣才能保證所有人
+## 看到的「已暫停」狀態一致,不會有人先暫停、有人還在跑。
+## 2026-09-22 除錯發現：判斷「是不是單人」原本用 multiplayer.has_multiplayer_peer()，
+## 實測發現這個底層連線旗標不可靠（直接跑 Battle.tscn 這種非典型流程下會誤判
+## 成 true，導致單人也走進多人 RPC 分支、送出去的 RPC 沒有任何連線可以接、
+## 完全靜默失敗——玩家會看到按鈕本身有反應（觸控有送達），但暫停畫面完全
+## 不會出現，跟使用者回報的症狀一致）。改用 BattleSettings.is_solo_mode——
+## 這是 Lobby.gd 選「單人遊玩」時就明確設定好的旗標，語意上就是「這場是不是
+## 單人」，比從底層連線狀態反推可靠、也不會受連線時序影響。
+func _on_pause_pressed() -> void:
+	if _is_paused or not _match_started or result_layer.visible:
+		return
+	if BattleSettings.is_solo_mode:
+		_is_paused = true
+		_show_pause_layer()
+		return
+	if _local_pause_used:
+		return
+	_request_pause.rpc_id(NetworkManager.HOST_PEER_ID)
+
+func _on_pause_resume_pressed() -> void:
+	if not _is_paused or _is_resume_counting_down:
+		return
+	if BattleSettings.is_solo_mode:
+		_is_paused = false
+		pause_layer.visible = false
+		return
+	_request_resume.rpc_id(NetworkManager.HOST_PEER_ID)
+
+func _on_pause_leave_pressed() -> void:
+	if BattleSettings.is_solo_mode:
+		get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
+		return
+	_request_leave_vote.rpc_id(NetworkManager.HOST_PEER_ID)
+
+func _show_pause_layer() -> void:
+	pause_layer.visible = true
+	pause_countdown_label_portrait.visible = false
+	pause_countdown_label_landscape.visible = false
+	pause_vote_dots_label_portrait.visible = not BattleSettings.is_solo_mode
+	pause_vote_dots_label_landscape.visible = not BattleSettings.is_solo_mode
+	if not BattleSettings.is_solo_mode:
+		_update_vote_dots(0, _real_participant_count())
+
+func _real_participant_count() -> int:
+	var count := 0
+	for pid in _director.participants:
+		if not BattleSettings.is_ai(pid):
+			count += 1
+	return count
+
+func _update_vote_dots(vote_count: int, total: int) -> void:
+	var text := ""
+	for i in range(total):
+		text += "●" if i < vote_count else "○"
+	pause_vote_dots_label_portrait.text = text
+	pause_vote_dots_label_landscape.text = text
+
+## ---- 多人暫停/離開投票 RPC（照 NetworkManager.gd 既有的「client 請求→
+## host 驗證→host 廣播」慣例；目前連線多人對戰還沒接到 Battle.tscn，這段
+## 連不到、沒辦法實機驗證，見上方檔案說明）----
+
+@rpc("any_peer", "reliable")
+func _request_pause() -> void:
+	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
+		return  # 防呆：只有伺服器本人才會真的受理
+	var sender_id := multiplayer.get_remote_sender_id()
+	if _is_paused or _pause_used_by.has(sender_id):
+		return  # 已經暫停中，或這個人這場已經用掉他的那一次機會
+	_pause_used_by[sender_id] = true
+	_broadcast_pause.rpc(sender_id)
+
+## call_local——host 自己也走這條路徑暫停，不用另外維護一份重複邏輯。
+## user_id 是誰觸發的這次暫停，每個收到端各自比對是不是自己，只標記自己
+## 那份 _local_pause_used，不會誤標到別人身上。
+@rpc("authority", "call_local", "reliable")
+func _broadcast_pause(user_id: int) -> void:
+	_is_paused = true
+	if user_id == multiplayer.get_unique_id():
+		_local_pause_used = true
+	_show_pause_layer()
+
+@rpc("any_peer", "reliable")
+func _request_resume() -> void:
+	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
+		return
+	if not _is_paused or _is_resume_counting_down:
+		return
+	_broadcast_resume_countdown.rpc()
+
+## 任何一個人按繼續都會走到這裡——不是只有暫停的那個人才能按。倒數本身在
+## 每個 peer 自己的 _process() 本機跑,不用逐幀再送 RPC,容許幾影格誤差
+## （反正目前也還沒有真正的盤面逐幀同步)。
+@rpc("authority", "call_local", "reliable")
+func _broadcast_resume_countdown() -> void:
+	_is_resume_counting_down = true
+	_resume_countdown_remaining = RESUME_COUNTDOWN_SECONDS
+	pause_countdown_label_portrait.visible = true
+	pause_countdown_label_landscape.visible = true
+
+@rpc("any_peer", "reliable")
+func _request_leave_vote() -> void:
+	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
+		return
+	var sender_id := multiplayer.get_remote_sender_id()
+	if _leave_votes.has(sender_id):
+		return  # 每人只能投一次，不能反悔取消
+	_leave_votes[sender_id] = true
+	var total := _real_participant_count()
+	if _leave_votes.size() * 2 > total:
+		_broadcast_leave_match.rpc()
+	else:
+		_broadcast_leave_votes.rpc(_leave_votes.size(), total)
+
+@rpc("authority", "call_local", "reliable")
+func _broadcast_leave_votes(vote_count: int, total: int) -> void:
+	_update_vote_dots(vote_count, total)
+
+@rpc("authority", "call_local", "reliable")
+func _broadcast_leave_match() -> void:
+	get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
+
+func _handle_input(delta: float) -> void:
+	var controller := _local_participant.controller
+	var left := Input.is_action_pressed("tetris_move_left")
+	var right := Input.is_action_pressed("tetris_move_right")
+	var dir := 0
+	if left and not right:
+		dir = -1
+	elif right and not left:
+		dir = 1
+
+	if dir != _move_dir:
+		_move_dir = dir
+		_das_timer = 0.0
+		_arr_timer = 0.0
+		if dir != 0:
+			controller.move(dir)
+	elif dir != 0:
+		_das_timer += delta
+		if _das_timer >= DAS_SEC:
+			_arr_timer += delta
+			while _arr_timer >= ARR_SEC:
+				_arr_timer -= ARR_SEC
+				controller.move(dir)
+
+	controller.set_soft_drop(Input.is_action_pressed("tetris_soft_drop"))
+
+	if Input.is_action_just_pressed("tetris_hard_drop"):
+		controller.hard_drop()
+	if Input.is_action_just_pressed("tetris_rotate_cw"):
+		controller.rotate(true)
+	if Input.is_action_just_pressed("tetris_rotate_ccw"):
+		controller.rotate(false)
+	if Input.is_action_just_pressed("tetris_hold"):
+		controller.hold()
+
+func _on_score_changed(new_score: int) -> void:
+	_set_score_text("分數: %d" % new_score)
+
+func _on_lines_cleared(count: int) -> void:
+	_set_lines_text("消行: %d" % _local_participant.controller.lines_cleared_total)
+	if count > 0:
+		PlayerSettings.vibrate(20 + count * 10)
+
+func _on_level_changed(new_level: int) -> void:
+	_set_level_text("等級: %d" % new_level)
+
+## HUD 文字（分數/消行/等級/倒數）2026-09-22 起也拆成直向/橫向各一份可排版
+## 場景檔（`Scenes/BattleHudLayoutPortrait.tscn`／`...Landscape.tscn`），跟其他
+## 彈窗同一套做法：直向/橫向兩份都要寫，不是只寫目前生效那份。
+func _set_score_text(text: String) -> void:
+	score_label_portrait.text = text
+	score_label_landscape.text = text
+
+func _set_lines_text(text: String) -> void:
+	lines_label_portrait.text = text
+	lines_label_landscape.text = text
+
+func _set_level_text(text: String) -> void:
+	level_label_portrait.text = text
+	level_label_landscape.text = text
+
+func _set_countdown_text(text: String) -> void:
+	countdown_label_portrait.text = text
+	countdown_label_landscape.text = text
+
+func _set_countdown_visible(v: bool) -> void:
+	countdown_label_portrait.visible = v
+	countdown_label_landscape.visible = v
+
+## 只有「自己」身上真的疊上垃圾行才震動——對手被打不用管。
+func _on_garbage_settled(participant_id: int, lines: int) -> void:
+	if lines <= 0 or not _local_participant or participant_id != _local_participant.id:
+		return
+	PlayerSettings.vibrate(30 + lines * 20)
+
+## 自己被淘汰（旁觀模式開始）給一個比消行更明顯的震動；隊友/對手淘汰不用管。
+func _on_participant_eliminated(participant_id: int) -> void:
+	if _local_participant and participant_id == _local_participant.id:
+		PlayerSettings.vibrate(200)
+
+## bo-N 判定：贏這輪的隊伍戰績+1，達到 BattleSettings.rounds_to_win 就是整場
+## 比賽結束；沒達到就顯示這輪結果，按鈕變成「下一輪」。
+func _on_round_ended(winning_team: int) -> void:
+	if winning_team != -1:
+		_team_round_wins[winning_team] = _team_round_wins.get(winning_team, 0) + 1
+
+	var target_wins: int = maxi(BattleSettings.rounds_to_win, 1)
+	var match_winner := -1
+	for team in _team_round_wins:
+		if _team_round_wins[team] >= target_wins:
+			match_winner = team
+			break
+
+	result_layer.visible = true
+	_refresh_stars_display()
+
+	if match_winner != -1:
+		_pending_next_round = false
+		_set_return_button_text("返回大廳")
+		if _local_participant and _local_participant.team_index == match_winner:
+			_set_result_text("你贏得整場比賽！")
+		else:
+			_set_result_text("你輸了整場比賽")
+	else:
+		_pending_next_round = true
+		_set_return_button_text("下一輪")
+		if winning_team == -1:
+			_set_result_text("這輪平手")
+		elif _local_participant and _local_participant.team_index == winning_team:
+			_set_result_text("你贏了這輪！")
+		else:
+			_set_result_text("你輸了這輪")
+
+func _set_result_text(text: String) -> void:
+	result_label_portrait.text = text
+	result_label_landscape.text = text
+
+func _set_return_button_text(text: String) -> void:
+	return_button_portrait.text = text
+	return_button_landscape.text = text
+
+## 常態顯示在版面上的整場戰績摘要（2026-09-22 起不再只有結算畫面才顯示，
+## _start_round()/_on_round_ended() 都會呼叫這個，直向/橫向兩份都寫,不是只
+## 寫目前生效那份——玩家隨時可能轉裝置,兩份都要有正確內容才不會轉完星星
+## 就不見）。
+func _refresh_stars_display() -> void:
+	var target_wins: int = maxi(BattleSettings.rounds_to_win, 1)
+	var stars_text := _build_stars_text(target_wins)
+	stars_label_portrait.visible = true
+	stars_label_portrait.text = stars_text
+	stars_label_landscape.visible = true
+	stars_label_landscape.text = stars_text
+
+func _build_stars_text(target_wins: int) -> String:
+	var lines: Array[String] = []
+	for team in range(BattleSettings.TEAM_COUNT):
+		if not _team_in_play(team):
+			continue
+		lines.append("%s %s" % [BattleSettings.TEAM_NAMES[team], _stars_for_team(team, target_wins)])
+	return "\n".join(lines)
+
+## 給單一隊伍的星星字串（"★★☆" 這種），本地玩家的整場摘要
+## （_build_stars_text()）跟每個對手縮小盤面自己那顆星星提示
+## （_spawn_opponent_panel()）共用同一份，不要各自重算一次。
+func _stars_for_team(team_index: int, target_wins: int) -> String:
+	var wins: int = _team_round_wins.get(team_index, 0)
+	var stars := ""
+	for i in range(target_wins):
+		stars += "★" if i < wins else "☆"
+	return stars
+
+func _team_in_play(team_index: int) -> bool:
+	for pid in _director.participants:
+		if _director.participants[pid].team_index == team_index:
+			return true
+	return false
+
+func _on_result_button_pressed() -> void:
+	if _pending_next_round:
+		_start_round()
+	else:
+		get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
+
+## 目前生效的那組（Portrait 或 Landscape）節點——portrait_layout.visible 就是
+## _apply_orientation_layout() 剛設好的狀態，直接拿來判斷，不用另外存一份
+## is_portrait。
+func _active_board_anchor() -> Control:
+	return board_anchor_portrait if portrait_layout.visible else board_anchor_landscape
+
+func _active_hold_panel() -> Control:
+	return hold_panel_portrait if portrait_layout.visible else hold_panel_landscape
+
+func _active_next_panel() -> Control:
+	return next_panel_portrait if portrait_layout.visible else next_panel_landscape
+
+func _active_settlement_bar() -> Control:
+	return settlement_bar_portrait if portrait_layout.visible else settlement_bar_landscape
+
+func _active_pending_dots_anchor() -> PendingDotsAnchor:
+	return pending_dots_anchor_portrait if portrait_layout.visible else pending_dots_anchor_landscape
+
+## 畫圖邏輯抽到 TetrisBoardRenderer.gd 共用（Board.gd 也用同一份），這裡只
+## 負責讀目前生效的 BoardAnchor/HoldPanel/NextPanel/SettlementBar/
+## PendingDotsAnchor 節點的 rect 算 cell_size/origin 再傳進去，不再自己用
+## 公式算版面位置——對手縮小盤面則是各自的 OpponentPanel 自己在 _draw()
+## 裡處理，不在這裡畫。
+func _draw() -> void:
+	if not _local_participant:
+		return
+	var controller := _local_participant.controller
+
+	var board_anchor := _active_board_anchor()
+	## 2026-09-22：改用 TetrisBoardRenderer.effective_size()（size × 自己＋
+	## 所有祖先節點疊乘起來的 Scale），不要只讀 size——使用者可能用 Scale
+	## 調整這個節點本身，也可能把它塞進別的有 Scale 的父節點底下，這樣不管
+	## 巢狀幾層，算出來的大小都會跟編輯器裡實際看到的視覺大小一致。
+	var board_effective_size := TetrisBoardRenderer.effective_size(board_anchor)
+	_cell_size = maxf(minf(board_effective_size.x / TetrisBoard.WIDTH, board_effective_size.y / TetrisBoard.VISIBLE_HEIGHT), 8.0)
+	_board_origin = board_anchor.global_position
+
+	TetrisBoardRenderer.draw_board_frame(self, _board_origin, _cell_size)
+	TetrisBoardRenderer.draw_locked_cells(self, controller.board, _board_origin, _cell_size, controller.get_clearing_rows())
+	if not controller.is_game_over and not controller.is_clearing():
+		TetrisBoardRenderer.draw_ghost(self, controller, _board_origin, _cell_size)
+		TetrisBoardRenderer.draw_active_piece(self, controller, _board_origin, _cell_size)
+
+	var hold_panel := _active_hold_panel()
+	var next_panel := _active_next_panel()
+	var hold_rect := Rect2(hold_panel.global_position, TetrisBoardRenderer.effective_size(hold_panel))
+	var next_rect := Rect2(next_panel.global_position, TetrisBoardRenderer.effective_size(next_panel))
+	TetrisBoardRenderer.draw_side_panel(self, hold_rect, controller.get_hold_type())
+	TetrisBoardRenderer.draw_side_panel_bg(self, next_rect)
+	var upcoming := controller.peek_next_pieces(1)
+	if not upcoming.is_empty():
+		TetrisBoardRenderer.draw_mini_piece(self, next_rect, upcoming[0])
+
+	## Y 座標改成從 _board_origin/_cell_size 現算（鎖定在最下面那個可視行的
+	## 上下正中間），不要直接讀 PendingDotsAnchor 節點的固定座標——這樣
+	## BoardAnchor 被使用者放大/縮小時，點點的間距（spacing=_cell_size，本來
+	## 就會跟著縮放）跟起始高度才會一起跟著變，不會維持在縮放前的舊位置。
+	## X 座標維持讀 PendingDotsAnchor（使用者自己排要離盤面多遠）。
+	## 2026-09-22 起 X/Y 都改成每一幀直接用目前的 _board_origin/_cell_size
+	## 現算（不再讀 PendingDotsAnchor 節點自己的固定座標）：第一顆點對齊在
+	## 最下面那個可視行的正中間，水平固定在盤面左邊 0.6 格的距離——跟對手
+	## 縮小盤面（OpponentPanel.gd）現算 dots_start 的公式是同一套，使用者把
+	## BoardAnchor 放大縮小時，點的位置/間距/大小（dot_size_ratio，見
+	## PendingDotsAnchor.gd）就都會自動跟著正確換算，不用手動重排這個節點。
+	var dots_anchor := _active_pending_dots_anchor()
+	var dots_start_pos := Vector2(
+		_board_origin.x - _cell_size * 0.6,
+		_board_origin.y + TetrisBoard.VISIBLE_HEIGHT * _cell_size - _cell_size / 2.0,
+	)
+	TetrisBoardRenderer.draw_pending_dots(self, _local_participant.pending_garbage.size(), dots_start_pos, _cell_size, dots_anchor.dot_size_ratio)
+	_draw_settlement_bar()
+
+## 找到長度對不上的真正原因：BoardAnchor 沒有精準卡在 10:20 的比例
+## （寬度算出來的 cell_size 比高度算出來的還大，多出來的水平空間被讓掉，
+## 見 _draw() 的 min(width/10, height/20)）——所以 BoardAnchor 自己的寬度
+## 一定比「棋盤實際畫出來的寬度」還寬，SettlementBar 用 BoardAnchor 的比例
+## 去抓自己的寬度，理所當然會比棋盤本身還長。改成寬度／X 座標直接鎖定
+## _cell_size*10／_board_origin.x（棋盤實際畫出來的範圍，跟 PendingDotsAnchor
+## 現算位置同一個原則），保證永遠精準對齊棋盤兩側，不受 BoardAnchor 比例
+## 影響；高度／Y 座標維持讀節點本身（粗細、離棋盤多遠讓使用者自己決定）。
+func _draw_settlement_bar() -> void:
+	var bar := _active_settlement_bar()
+	var bar_height := TetrisBoardRenderer.effective_size(bar).y
+	var bar_rect := Rect2(Vector2(_board_origin.x, bar.global_position.y), Vector2(_cell_size * TetrisBoard.WIDTH, bar_height))
+	var progress := _director.get_settlement_progress()
+	draw_rect(bar_rect, Color(0.2, 0.2, 0.24), true)
+	draw_rect(Rect2(bar_rect.position, Vector2(bar_rect.size.x * progress, bar_rect.size.y)), Color(0.9, 0.6, 0.2), true)

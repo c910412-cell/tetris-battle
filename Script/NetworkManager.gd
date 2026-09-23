@@ -39,6 +39,31 @@ signal room_join_rejected(reason: String)
 ## 既有的「整個回大廳」邏輯）是兩種不同情境，見 _on_server_disconnected()
 ## 的說明。
 signal kicked_from_room(reason: String)
+## 對戰中（_match_started==true）有人斷線——只有 HOST_PEER_ID 收得到
+## peer_disconnected 訊號，所以這個訊號只會在真正的伺服器那台裝置上發出。
+## Script/BattleMatchSync.gd 監聽這個訊號去標記 BattleParticipant.
+## is_disconnected，這個檔案本身不知道 BattleDirector/BattleParticipant 是
+## 什麼（見檔案開頭的說明：這裡刻意不碰任何戰鬥/方塊專屬的概念）。
+signal match_peer_disconnected(peer_id: int)
+## 對戰中跟 host 斷線後，這台裝置（一定是非 host 的 client）開始嘗試自動
+## 重新連線——Battle.gd 收到這個可以顯示「重新連線中…」的畫面。
+signal match_reconnecting
+## 自動重試一次失敗了（連不上，或逾時沒收到 connected_to_server）——Battle.gd
+## 收到這個可以顯示「重新連線失敗」+ 讓玩家自己按按鈕再試一次
+## （retry_match_reconnect()）。
+signal match_reconnect_failed
+## 重新連上了（ENet 連線本身恢復，還沒認領回原本的參與者身分那一步）——
+## Battle.gd 收到這個可以先把「重新連線中」畫面收掉。真正的盤面快照還原是
+## Script/BattleMatchSync.gd 收到 host 送回來的資料才會做，跟這個訊號分開。
+signal match_reconnected
+## host 收到某個新連線帶著舊的 participant id 來認領（見
+## _claim_match_reconnect()）——new_peer_id 是這個連線「現在」真正的 ENet
+## peer id（跟斷線前的那個 id 不會一樣，ENet 的 peer id 是新連線自己配的,
+## 沒辦法指定重用),claimed_participant_id 是它自稱斷線前是哪個參與者。這個
+## 檔案只負責轉發、不驗證/不套用（要不要真的讓它認領成功是
+## Script/BattleMatchSync.gd 的事，因為要查 BattleDirector 裡那個參與者是不是
+## 真的處於斷線狀態，這個檔案不知道那個概念）。
+signal match_reconnect_claimed(new_peer_id: int, claimed_participant_id: int)
 
 ## ENet 的伺服器永遠是 peer id 1（見 host_game() 的 create_server()）——這類
 ## 「只有一個人能拍板」的事情，統一認這個 id 當權威，不用另外維護一個
@@ -60,10 +85,11 @@ const ROOM_STALE_SECONDS := 3.0
 ## 開一個夠大的上限（含 host 共 MAX_SUPPORTED_PLAYERS 人），真正的人數限制
 ## 放在應用層擋（_submit_room_password() 收到新連線時比對 room_max_players）。
 const MAX_SUPPORTED_PLAYERS := 4
-## 開始比賽後大家一起切過去的對局場景——目前是空白佔位（見
-## Scenes/Board.tscn），俄羅斯方塊的盤面/對戰畫面還沒做，先讓連線骨架能
-## 完整跑通「開房→搜尋→加入→準備→開始→進場景」整條路。
-const MATCH_SCENE_PATH := "res://Scenes/Board.tscn"
+## 開始比賽後大家一起切過去的對局場景。2026-09-23 起改接真正的對戰畫面
+## Battle.tscn（原本指向空白佔位的 Board.tscn，只是讓連線骨架能先跑通
+## 「開房→搜尋→加入→準備→開始→進場景」整條路，現在盤面同步第一階段
+## 已經開始接，改指過去）。
+const MATCH_SCENE_PATH := "res://Scenes/Battle.tscn"
 const MULTIPLAYER_LOBBY_SCENE_PATH := "res://Scenes/MultiplayerLobby.tscn"
 
 ## 見 update_room_settings()——以下四個是房主端的權威房間設定，client 端
@@ -110,6 +136,18 @@ var _pending_join_password: String = ""
 var _pending_owner_code: String = ""
 var _is_owner_claim_attempt: bool = false
 var _owner_claim_submitted: bool = false
+
+## 對戰中斷線重連用（見 match_reconnecting 等訊號的說明）：記住最後一次
+## join_game()/join_as_owner_candidate() 用的位址/連接埠,斷線後才知道要
+## 連回哪裡——不用讓玩家重新搜尋/手動輸入一次。_match_local_participant_id
+## 是這台裝置本機真人玩家在 BattleSettings 分隊結果裡的 id（開賽那一刻的
+## multiplayer.get_unique_id()，不會因為之後重新連線拿到新的 ENet peer id
+## 而改變，靠這個認領回原本的參與者身分，見 _claim_match_reconnect()）。
+var _last_join_address: String = ""
+var _last_join_port: int = 0
+var _match_local_participant_id: int = 0
+var _is_reconnect_attempt: bool = false
+var _reconnect_claim_submitted: bool = false
 
 var _discovery_broadcast_socket: PacketPeerUDP
 var _discovery_listen_socket: PacketPeerUDP
@@ -382,6 +420,8 @@ func get_discovered_rooms() -> Array:
 ## ——見 _pending_join_password 的說明。
 func join_game(address: String, port: int, password: String = "") -> bool:
 	stop_discovery()
+	_last_join_address = address
+	_last_join_port = port
 	_pending_join_password = password
 	_password_submitted = false
 	_is_owner_claim_attempt = false
@@ -402,6 +442,8 @@ func join_game(address: String, port: int, password: String = "") -> bool:
 ## _claim_room_owner_request() 這條 RPC，不是 _submit_room_password()。
 func join_as_owner_candidate(address: String, port: int, owner_code: String) -> bool:
 	stop_discovery()
+	_last_join_address = address
+	_last_join_port = port
 	_pending_join_password = ""
 	_password_submitted = false
 	_pending_owner_code = owner_code
@@ -441,6 +483,11 @@ func cancel() -> void:
 	room_map_id = "practice"
 	room_owner_peer_id = -1
 	room_owner_code = ""
+	_last_join_address = ""
+	_last_join_port = 0
+	_match_local_participant_id = 0
+	_is_reconnect_attempt = false
+	_reconnect_claim_submitted = false
 
 
 ## 任一端斷線時呼叫。
@@ -457,7 +504,16 @@ func cancel() -> void:
 ## 代碼的人認領——不然房主一斷線，沒有人能再改設定/按開始，房間會卡死。
 ## 只有 HOST_PEER_ID（真正的伺服器）才會執行到這裡（peer_disconnected
 ## 訊號本來就只有伺服器收得到其他 peer 的斷線通知），不用另外判斷。
+## 2026-09-23：對戰已經開始的話（_match_started）不要跑下面這段大廳清理
+## 邏輯——房間等候階段的「這格空出來、重新廣播人數」跟對戰中的「這個人的
+## 盤面要暫停、等重連」是完全不同的處理方式,見 match_peer_disconnected 訊號
+## 的說明。房主本人（room_owner_peer_id）此時也不清空——房主是遠端手機的
+## 情境下,房主斷線一樣走「暫停等重連」,不是清空房主身分（那是等候階段才有
+## 意義的概念，對局中房主斷線由 Script/BattleMatchSync.gd 決定要怎麼處理)。
 func _on_peer_disconnected(peer_id: int) -> void:
+	if _match_started:
+		match_peer_disconnected.emit(peer_id)
+		return
 	var room_state_changed := false
 	if _peer_ready.has(peer_id):
 		_peer_ready.erase(peer_id)
@@ -485,6 +541,14 @@ var _password_submitted: bool = false
 ## 不同的 RPC，見下面兩個 handler 各自的說明。
 func _on_connected_to_server() -> void:
 	joined_as_client.emit()
+	if _is_reconnect_attempt:
+		if _reconnect_claim_submitted:
+			return
+		_reconnect_claim_submitted = true
+		_is_reconnect_attempt = false
+		match_reconnected.emit()
+		_claim_match_reconnect.rpc_id(HOST_PEER_ID, _match_local_participant_id)
+		return
 	if _is_owner_claim_attempt:
 		if _owner_claim_submitted:
 			return
@@ -574,6 +638,11 @@ func _reject_join(reason: String) -> void:
 
 
 func _on_connection_failed() -> void:
+	if _is_reconnect_attempt:
+		_is_reconnect_attempt = false
+		multiplayer.multiplayer_peer = null
+		match_reconnect_failed.emit()
+		return
 	connection_failed.emit("連線失敗，對方可能已離開或網路不通")
 	multiplayer.multiplayer_peer = null
 
@@ -584,15 +653,56 @@ func _on_connection_failed() -> void:
 ## 畫面可以退回去)；前者不用整個重載場景，只要讓 RoomLobby.gd 自己關掉、
 ## 退回房間搜尋列表就好（見 kicked_from_room 訊號的說明），
 ## MultiplayerLobby.tscn 本來就還活著在底下，不用重新生成。
+## 2026-09-23：對戰中（MATCH_SCENE_PATH）斷線不再直接強制退回大廳——改成
+## 嘗試自動重新連線（見 _try_match_reconnect()），留在原本的對局場景（不切
+## 場景、不 cancel()，BattleDirector/BattleParticipant 這些純邏輯物件全部
+## 留在記憶體裡不受影響，重連成功後 host 直接把保留的快照送回來接上就好，
+## 不用重新初始化任何東西）。連不回去（見 match_reconnect_failed）才由
+## Battle.gd 自己決定要不要退回大廳,這個檔案不強制。房間等候階段（還沒真的
+## 開打）斷線維持原本「整個回大廳/回房間搜尋列表」的行為不變。
 func _on_server_disconnected() -> void:
 	var current := get_tree().current_scene
 	if current and current.scene_file_path == MATCH_SCENE_PATH:
-		connection_failed.emit("與主機的連線中斷")
-		cancel()
-		get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
+		_try_match_reconnect()
 	else:
 		cancel()
 		kicked_from_room.emit("房主已離開房間")
+
+## 只嘗試連線層的重試,不做自動重複迴圈——手機網路環境不穩定,自動狂重試
+## 容易越幫越忙,失敗一次就交給使用者自己決定要不要用 UI 上的按鈕
+## （retry_match_reconnect()）再試。這整段完全沒辦法在這個開發環境用單一個
+## 編輯器實機驗證雙裝置情境,是先寫好架構、真正可靠度要等使用者拿兩台真機測。
+func _try_match_reconnect() -> void:
+	if _last_join_address == "":
+		match_reconnect_failed.emit()
+		return
+	match_reconnecting.emit()
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_client(_last_join_address, _last_join_port)
+	if err != OK:
+		match_reconnect_failed.emit()
+		return
+	_is_reconnect_attempt = true
+	_reconnect_claim_submitted = false
+	multiplayer.multiplayer_peer = peer
+
+
+## 給 Battle.gd 的「重新連線中」畫面上的按鈕呼叫——上一次自動/手動嘗試失敗後
+## 再試一次。
+func retry_match_reconnect() -> void:
+	_try_match_reconnect()
+
+
+## client 連上之後帶著斷線前的 participant id 來認領（見
+## _match_local_participant_id 的說明）——這裡只轉發給
+## Script/BattleMatchSync.gd（透過 match_reconnect_claimed 訊號),不驗證/
+## 不套用,因為要不要真的讓它認領成功要查 BattleDirector 裡那個參與者是不是
+## 真的處於斷線狀態,這個檔案不知道那個概念（見檔案開頭的說明）。
+@rpc("any_peer", "reliable")
+func _claim_match_reconnect(claimed_participant_id: int) -> void:
+	if multiplayer.get_unique_id() != HOST_PEER_ID:
+		return  # 防呆：只有伺服器本人才會真的受理
+	match_reconnect_claimed.emit(multiplayer.get_remote_sender_id(), claimed_participant_id)
 
 
 ## 房主在房間等候畫面按下「開始」時呼叫（見 RoomLobby.gd）。單人房間
@@ -629,7 +739,16 @@ func _do_start_match() -> void:
 		if not ready:
 			return  # 還有人沒準備好，擋掉
 	_match_started = true
-	_start_match.rpc()
+	# 2026-09-23：房主在這裡產生這一場比賽共用的隨機種子，隨著開始比賽一起
+	# 廣播出去（BattleSettings.network_match_seed，BattleDirector._init() 拿
+	# 這個取代各自本地 randi()），確保 random_piece_per_player 關閉時大家重建
+	# 出同一份 7-bag 出塊順序。bo-N 之後每一輪要不要重新配種、輪間怎麼讓大家
+	# 一起切下一輪，屬於第二階段（拆分模擬架構）要解決的範圍，這裡先只處理
+	# 「開賽第一輪」。
+	var match_seed := randi()
+	if match_seed == 0:
+		match_seed = 1
+	_start_match.rpc(match_seed)
 
 
 ## 房主在對局場景（Board.tscn）裡按下「返回」時呼叫，取代「整個 cancel()
@@ -662,6 +781,7 @@ func _do_end_match() -> void:
 	if not _match_started:
 		return
 	_match_started = false
+	BattleSettings.network_match_seed = 0
 	for peer_id in _peer_ready:
 		_peer_ready[peer_id] = false
 	_broadcast_room_state()
@@ -688,7 +808,13 @@ func _end_match() -> void:
 ## 直接不切場景——留在 RemoteConnect.gd 那個畫面，不生成/操作自己的畫面。
 ## 電腦自己就是房主（「自己開房間」流程）時維持原本既有行為，正常進場景。
 @rpc("authority", "call_local", "reliable")
-func _start_match() -> void:
+func _start_match(match_seed: int) -> void:
+	BattleSettings.network_match_seed = match_seed
+	## 記住這一刻的 peer id 當作「這台裝置本機真人玩家的參與者身分」——見
+	## _match_local_participant_id 的說明，之後真的斷線重連時要拿這個去
+	## 認領，不能用重連當下的 multiplayer.get_unique_id()（那時候已經是
+	## 全新連線配的新 id 了）。
+	_match_local_participant_id = multiplayer.get_unique_id()
 	if multiplayer.get_unique_id() == HOST_PEER_ID and room_owner_peer_id != HOST_PEER_ID:
 		match_starting.emit()
 		if _discovery_broadcast_socket:

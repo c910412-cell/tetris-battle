@@ -1,0 +1,405 @@
+[gd_scene format=3 uid="uid://c44a5glgvir57"]
+
+[ext_resource type="Script" uid="uid://dvkdjo7bv4sld" path="res://Script/TetrisTouchButton.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cbw1pssms4kgb" path="res://Image/左.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://d2y0rwoqihklv" path="res://Image/右.png" id="3"]
+[ext_resource type="Texture2D" uid="uid://b7nhyh8n4fand" path="res://Image/下.png" id="4"]
+[ext_resource type="Texture2D" uid="uid://02ju1hexmrqs" path="res://Image/下底.png" id="5"]
+[ext_resource type="Texture2D" uid="uid://bxgo4jqjsgv2y" path="res://Image/左轉.png" id="6"]
+[ext_resource type="Texture2D" uid="uid://7gkru1s3iymw" path="res://Image/右轉.png" id="7"]
+[ext_resource type="Texture2D" uid="uid://dbq2j52e50jxm" path="res://Image/hold.png" id="8"]
+[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots1.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots2.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots3.tscn" id="11"]
+[ext_resource type="Script" uid="uid://dsbcgk6n514mg" path="res://Script/TetrisGestureZone.gd" id="12"]
+[ext_resource type="Script" uid="uid://bat67mpfamqv5" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
+[ext_resource type="Script" uid="uid://cjxlpln8tfsnh" path="res://Script/PendingDotsAnchor.gd" id="14"]
+
+[node name="BattleLayoutPortrait" type="Control" unique_id=1272861030]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1080.0
+offset_bottom = 1920.0
+mouse_filter = 2
+
+[node name="FrameGuide" type="ReferenceRect" parent="." unique_id=639294879]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="BoardAspect" type="AspectRatioContainer" parent="." unique_id=251123075]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -424.0
+offset_top = -757.0
+offset_right = 196.0
+offset_bottom = 483.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+ratio = 0.5
+
+[node name="BoardAnchor" type="Control" parent="BoardAspect" unique_id=798791779]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="SettlementBar" type="Control" parent="BoardAspect/BoardAnchor" unique_id=1326957843]
+anchors_preset = 0
+offset_top = -14.0
+offset_right = 620.0
+offset_bottom = -4.0
+mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor" unique_id=660232410]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="PendingDotsAnchor" type="Control" parent="BoardAspect/BoardAnchor" unique_id=2036585763]
+anchors_preset = 0
+offset_left = -20.0
+offset_top = 1220.0
+offset_bottom = 1240.0
+mouse_filter = 2
+script = ExtResource("14")
+
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/PendingDotsAnchor" unique_id=2099931582]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="CellAnchor" type="Control" parent="." unique_id=1735876980]
+anchors_preset = 0
+offset_left = 230.0
+offset_top = 360.0
+offset_right = 292.0
+offset_bottom = 422.0
+mouse_filter = 2
+
+[node name="HoldPanel" type="Control" parent="." unique_id=1649736669]
+anchors_preset = 0
+offset_left = 879.0
+offset_top = 330.0
+offset_right = 999.0
+offset_bottom = 450.0
+mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="HoldPanel" unique_id=375977219]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="HoldLabel" type="Label" parent="." unique_id=1706364218]
+layout_mode = 0
+offset_left = 883.0
+offset_top = 280.0
+offset_right = 996.0
+offset_bottom = 335.0
+theme_override_font_sizes/font_size = 40
+text = "HOLD"
+horizontal_alignment = 1
+
+[node name="NextPanel" type="Control" parent="." unique_id=868634935]
+anchors_preset = 0
+offset_left = 879.0
+offset_top = 154.0
+offset_right = 999.0
+offset_bottom = 274.0
+mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="NextPanel" unique_id=637739447]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="NextLabel" type="Label" parent="." unique_id=183408614]
+layout_mode = 0
+offset_left = 890.0
+offset_top = 105.0
+offset_right = 991.0
+offset_bottom = 160.0
+theme_override_font_sizes/font_size = 40
+text = "NEXT"
+horizontal_alignment = 1
+
+[node name="StarsLabel" type="Label" parent="." unique_id=1197561466]
+layout_mode = 0
+offset_left = 73.0
+offset_top = 1506.0
+offset_right = 553.0
+offset_bottom = 1596.0
+theme_override_font_sizes/font_size = 28
+
+[node name="StarsIconAnchor" type="ReferenceRect" parent="." unique_id=784954168]
+layout_mode = 0
+offset_left = 74.0
+offset_top = 1507.0
+offset_right = 554.0
+offset_bottom = 1567.0
+mouse_filter = 2
+border_color = Color(0.9, 0.8, 0.2, 0.7)
+border_width = 3.0
+
+[node name="OpponentSlots1" parent="." unique_id=1202951601 instance=ExtResource("9")]
+anchors_preset = 0
+offset_left = 879.0
+offset_top = 460.0
+offset_right = 999.0
+offset_bottom = 1500.0
+
+[node name="OpponentSlots2" parent="." unique_id=230358606 instance=ExtResource("10")]
+anchors_preset = 0
+offset_left = 879.0
+offset_top = 460.0
+offset_right = 999.0
+offset_bottom = 1500.0
+
+[node name="OpponentSlots3" parent="." unique_id=732173734 instance=ExtResource("11")]
+anchors_preset = 0
+offset_left = 879.0
+offset_top = 460.0
+offset_right = 999.0
+offset_bottom = 1500.0
+
+[node name="MoveLeftButton" type="TextureButton" parent="." unique_id=737910751]
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -270.0
+offset_right = 160.0
+offset_bottom = -150.0
+texture_normal = ExtResource("2")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_move_left"
+
+[node name="MoveRightButton" type="TextureButton" parent="." unique_id=539330683]
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 170.0
+offset_top = -270.0
+offset_right = 290.0
+offset_bottom = -150.0
+texture_normal = ExtResource("3")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_move_right"
+
+[node name="SoftDropButton" type="TextureButton" parent="." unique_id=2070497665]
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 105.0
+offset_top = -160.0
+offset_right = 225.0
+offset_bottom = -40.0
+texture_normal = ExtResource("4")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_soft_drop"
+
+[node name="MoveGestureZone" type="Control" parent="." unique_id=2027304983]
+visible = false
+anchors_preset = 0
+anchor_right = 0.5
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("13")
+
+[node name="RotateCCWButton" type="TextureButton" parent="." unique_id=1830842809]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -270.0
+offset_right = -40.0
+offset_bottom = -150.0
+grow_horizontal = 0
+grow_vertical = 0
+texture_normal = ExtResource("6")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_rotate_cw"
+
+[node name="RotateCWButton" type="TextureButton" parent="." unique_id=1491517349]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -290.0
+offset_top = -270.0
+offset_right = -170.0
+offset_bottom = -150.0
+grow_horizontal = 0
+grow_vertical = 0
+texture_normal = ExtResource("7")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_rotate_ccw"
+
+[node name="HardDropButton" type="TextureButton" parent="." unique_id=1001047645]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -225.0
+offset_top = -160.0
+offset_right = -105.0
+offset_bottom = -40.0
+texture_normal = ExtResource("5")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_hard_drop"
+
+[node name="GestureZone" type="Control" parent="." unique_id=681674568]
+visible = false
+anchors_preset = 0
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource("12")
+
+[node name="HoldButton" type="TextureButton" parent="." unique_id=2137172824]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -377.0
+offset_top = -160.0
+offset_right = -257.0
+offset_bottom = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+texture_normal = ExtResource("8")
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_hold"
+
+[node name="PauseButton" type="TextureButton" parent="." unique_id=901765834]
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 50.0
+offset_right = -40.0
+offset_bottom = 150.0
+ignore_texture_size = true
+stretch_mode = 5
+script = ExtResource("1")
+input_action = "tetris_pause"
+button_color = Color(1, 0.6, 0.1, 0.5)
+
+[node name="ScorePlaceholder" type="ReferenceRect" parent="." unique_id=461987479]
+layout_mode = 0
+offset_left = 74.0
+offset_top = 40.0
+offset_right = 334.0
+offset_bottom = 80.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="ScoreLabel" type="Label" parent="." unique_id=2039152864]
+layout_mode = 0
+offset_left = 74.0
+offset_top = 40.0
+offset_right = 334.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 30
+text = "分數: 0"
+
+[node name="LinesPlaceholder" type="ReferenceRect" parent="." unique_id=1004615409]
+layout_mode = 0
+offset_left = 345.0
+offset_top = 40.0
+offset_right = 605.0
+offset_bottom = 80.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="LinesLabel" type="Label" parent="." unique_id=1584307956]
+layout_mode = 0
+offset_left = 345.0
+offset_top = 40.0
+offset_right = 605.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 30
+text = "消行: 0"
+
+[node name="LevelPlaceholder" type="ReferenceRect" parent="." unique_id=1974022733]
+layout_mode = 0
+offset_left = 613.0
+offset_top = 40.0
+offset_right = 873.0
+offset_bottom = 80.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="LevelLabel" type="Label" parent="." unique_id=1893648049]
+layout_mode = 0
+offset_left = 613.0
+offset_top = 40.0
+offset_right = 873.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 30
+text = "等級: 1"
+
+[node name="CountdownPlaceholder" type="ReferenceRect" parent="." unique_id=250648853]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 900.0
+offset_right = 640.0
+offset_bottom = 1020.0
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="CountdownLabel" type="Label" parent="." unique_id=1258767426]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 900.0
+offset_right = 640.0
+offset_bottom = 1020.0
+theme_override_font_sizes/font_size = 72
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
