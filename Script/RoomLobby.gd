@@ -43,12 +43,12 @@ class_name RoomLobby
 const MAP_OPTIONS: Array[Dictionary] = [
 	{"id": "practice", "label": "練習場"},
 ]
-## 【2026-09-20，見使用者需求釐清：人數上限 1~4，先開放 1~2】index 對應
-## 「包含房主自己的總人數上限」實際數字，3/4 先鎖住不能選（見
-## _setup_max_players_options()），但選單本身照樣列出 1~4，讓玩家先看得到
-## 未來會開放的樣子。
+## 【2026-09-20，見使用者需求釐清：人數上限 1~4】index 對應「包含房主自己
+## 的總人數上限」實際數字。2026-09-23：跟 RoomBattleSettings.gd 同步開放到
+## 4 人（這個檔案是舊版、已被 RoomBattleSettings.tscn 取代的死碼，見
+## MultiplayerLobby.gd 的說明，這裡只是保持跟現役版本一致，不會被實際跑到）。
 const MAX_PLAYERS_OPTIONS: Array[int] = [1, 2, 3, 4]
-const MAX_PLAYERS_ENABLED_LIMIT := 2
+const MAX_PLAYERS_ENABLED_LIMIT := 4
 const DEFAULT_MAX_PLAYERS := 2
 
 var _is_owner: bool = false

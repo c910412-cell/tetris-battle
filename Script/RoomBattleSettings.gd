@@ -81,7 +81,11 @@ const MAP_OPTIONS: Array[Dictionary] = [
 	{"id": "practice", "label": "練習場"},
 ]
 const MAX_PLAYERS_OPTIONS: Array[int] = [1, 2, 3, 4]
-const MAX_PLAYERS_ENABLED_LIMIT := 2
+## 2026-09-23：對戰同步層（BattleMatchSync/BattleDirector）從一開始就是用
+## participants 字典驅動、沒有寫死配對數量，2 人連線測過穩定之後直接開放
+## 到 4 人（NetworkManager.MAX_SUPPORTED_PLAYERS 這個傳輸層上限本來就是
+## 4，之前只是應用層這裡刻意先鎖住 UI 選項）。
+const MAX_PLAYERS_ENABLED_LIMIT := 4
 const DEFAULT_MAX_PLAYERS := 2
 
 var _is_multiplayer: bool = false
