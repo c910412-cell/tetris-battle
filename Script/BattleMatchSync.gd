@@ -49,6 +49,17 @@ var _participant_to_real_peer: Dictionary = {}
 ## 兩個計時範圍（那個是整個房間等候階段，這個是「這一輪打完了」這個時間點）。
 var _continue_confirmed: Dictionary = {}
 
+## host 端專用：每次 bind_director()（＝真的開始新的一輪）遞增，給重連時
+## 判斷「這個人斷線的時候是第幾輪」用（見 _disconnected_at_round/
+## _on_match_reconnect_claimed() 的說明）。
+var _round_number: int = 0
+## host 端專用：participant_id -> 斷線當下是第幾輪。重連認領時如果現在的
+## _round_number 已經往前走了（代表其他人已經開始新的一輪，這個人整段錯過
+## 了),代表回不去了——2026-09-23 使用者明確要求先做簡單版：偵測到跨輪就讓
+## 這個人整個踢回大廳,不嘗試把新一輪當下所有人的盤面/星星戰績整包送給他
+## 無縫接軌（那個要做的事情很多,之後真的需要再回來做完整版）。
+var _disconnected_at_round: Dictionary = {}
+
 func _ready() -> void:
 	NetworkManager.match_peer_disconnected.connect(_on_network_peer_disconnected)
 	NetworkManager.match_reconnect_claimed.connect(_on_match_reconnect_claimed)
@@ -61,6 +72,7 @@ func bind_director(director: BattleDirector, is_host_authority: bool, local_part
 	_is_host_authority = is_host_authority
 	_local_participant_id = local_participant_id
 	_continue_confirmed.clear()
+	_round_number += 1
 	var participant_ids: Array = director.participants.keys()
 	print("[Sync] bind_director my_id=%d is_host_authority=%s local_participant_id=%d networked=%s participants=%s" \
 			% [multiplayer.get_unique_id(), is_host_authority, local_participant_id, _is_networked(), str(participant_ids)])
@@ -138,12 +150,12 @@ func _sync_board_state(participant_id: int, snapshot: Dictionary) -> void:
 
 ## --- C：攻擊/垃圾行結算同步 ----------------------------------------------
 
-func _on_attack_relay_needed(participant_id: int, attack_power: int, gap_columns: Array) -> void:
+func _on_attack_relay_needed(participant_id: int, attack_power: float, gap_columns: Array) -> void:
 	print("[Sync] _on_attack_relay_needed participant=%d -> rpc_id host _request_resolve_attack" % participant_id)
 	_request_resolve_attack.rpc_id(NetworkManager.HOST_PEER_ID, participant_id, attack_power, gap_columns)
 
 @rpc("any_peer", "reliable")
-func _request_resolve_attack(participant_id: int, attack_power: int, gap_columns: Array) -> void:
+func _request_resolve_attack(participant_id: int, attack_power: float, gap_columns: Array) -> void:
 	print("[Sync] RECEIVED _request_resolve_attack participant=%d my_id=%d" % [participant_id, multiplayer.get_unique_id()])
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return
@@ -234,6 +246,7 @@ func _on_network_peer_disconnected(peer_id: int) -> void:
 	if not _director.participants.has(participant_id):
 		return
 	_director.set_participant_disconnected(participant_id, true)
+	_disconnected_at_round[participant_id] = _round_number
 	_sync_disconnected.rpc(participant_id, true)
 
 @rpc("authority", "reliable")
@@ -248,11 +261,25 @@ func _sync_disconnected(participant_id: int, disconnected: bool) -> void:
 ## 新連線——已經被淘汰的人不用送快照（見該函式呼叫端的說明：不能讓重連
 ## 復活一個真的輸掉的人,restore_from_snapshot() 會把 is_game_over 重設成
 ## false,只有還沒真的輸、單純斷線暫停的人才適用)。
+## 2026-09-23 使用者回報：斷線的人如果是在「跨輪」之後才重新連上（其他人
+## 已經開始新的一輪、bind_director() 已經換綁成新的 BattleDirector），下面
+## 這段邏輯完全沒有「回合是不是同一個」的概念——會直接把新一輪、全新的
+## controller 快照送回去，但重連的人自己那台裝置的 Battle.gd/BattleMatchSync
+## 完全沒經歷新一輪的 _start_round()（他們斷線期間錯過了
+## _broadcast_start_next_round.rpc()，那是不重播的一次性廣播），畫面上其他
+## 東西（team_round_wins 星星、對手名單、結算畫面）全部還停在斷線前的舊
+## 一輪，只有這個 controller 的盤面被偷偷換成新一輪的空板——整個畫面變成
+## 新舊資料混在一起。先做簡單版（使用者明確要求）：偵測到「斷線當下的輪數
+## 不等於現在的輪數」就不嘗試接回去，直接讓這個人整個踢回大廳,自己重新
+## 搜尋/加入房間。
 func _on_match_reconnect_claimed(new_peer_id: int, claimed_participant_id: int) -> void:
 	if not _is_host_authority or _director == null:
 		return
 	var participant: BattleParticipant = _director.participants.get(claimed_participant_id)
 	if participant == null or not participant.is_disconnected:
+		return
+	if _disconnected_at_round.get(claimed_participant_id, _round_number) != _round_number:
+		_reject_stale_reconnect.rpc_id(new_peer_id)
 		return
 	_real_peer_to_participant[new_peer_id] = claimed_participant_id
 	_participant_to_real_peer[claimed_participant_id] = new_peer_id
@@ -260,6 +287,14 @@ func _on_match_reconnect_claimed(new_peer_id: int, claimed_participant_id: int) 
 	_sync_disconnected.rpc(claimed_participant_id, false)
 	if not participant.is_eliminated:
 		_deliver_resume_snapshot.rpc_id(new_peer_id, claimed_participant_id, participant.controller.get_resume_snapshot())
+
+## 收到這個代表「你斷線的時候比賽已經進了新的一輪，接不回去了」——直接整個
+## 斷線回大廳，使用者需要自己重新搜尋/加入房間（見上面
+## _on_match_reconnect_claimed() 的說明，這是刻意選的簡化版本）。
+@rpc("authority", "reliable")
+func _reject_stale_reconnect() -> void:
+	NetworkManager.cancel()
+	get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
 
 @rpc("authority", "reliable")
 func _deliver_resume_snapshot(participant_id: int, snapshot: Dictionary) -> void:

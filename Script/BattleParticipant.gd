@@ -27,8 +27,10 @@ var is_disconnected: bool = false
 ## 別人打過來、還沒結算成真垃圾行的缺口欄位佇列（FIFO，依累積順序）。
 var pending_garbage: Array = []
 ## 這個玩家自己消行換算傷害用的餘數進位（見對戰規格：不分現在打誰，一個
-## 玩家共用一份）。
-var ratio_remainder: int = 0
+## 玩家共用一份）。2026-09-23 改成 float——開啟
+## BattleSettings.single_line_counts_as_attack 時單行消行只算 0.5 點攻擊力
+## （見 BattleDirector._comeback_adjusted_attack_power()），餘數會出現非整數。
+var ratio_remainder: float = 0.0
 ## 目前這個玩家的攻擊目標（另一個 BattleParticipant 的 id）。
 var current_target_id: int = 0
 ## true 代表 current_target_id 是玩家自己觸控選的（指定目標攻擊開啟時），

@@ -265,6 +265,18 @@ text = "AI 等級（單人遊玩用）"
 layout_mode = 2
 custom_minimum_size = Vector2(220, 0)
 
+[node name="SingleLineAttackRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsScroll/SettingsList/SingleLineAttackRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "清 1 行也算攻擊力（反敗為勝）"
+
+[node name="SingleLineAttackToggle" type="CheckButton" parent="SettingsScroll/SettingsList/SingleLineAttackRow"]
+layout_mode = 2
+
 [node name="StatusLabel" type="Label" parent="."]
 offset_left = 60.0
 offset_top = 1710.0

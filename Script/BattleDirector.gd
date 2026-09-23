@@ -33,7 +33,7 @@ signal garbage_settled(participant_id: int, lines: int)
 signal local_board_changed(participant_id: int)
 ## 非權威裝置自己鎖方塊觸發了 attack_ready，但攻擊/垃圾行結算是 host 權威、
 ## 這台裝置不能自己解算——BattleMatchSync 監聽這個訊號轉送給 host。
-signal attack_relay_needed(participant_id: int, attack_power: int, gap_columns: Array)
+signal attack_relay_needed(participant_id: int, attack_power: float, gap_columns: Array)
 ## resolve_attack()／_settle_all() 讓某個參與者的 pending_garbage 數量變了
 ## （不管是被扣掉還是被加上），BattleMatchSync（host 端）監聽這個訊號廣播
 ## 目前每個人的待定點點數量給大家更新畫面。
@@ -233,7 +233,7 @@ func _settle_all() -> void:
 ## 給 Script/BattleMatchSync.gd 呼叫：host 收到遠端真人回報「我鎖了一顆方塊
 ## 消行了」之後，用這個入口跑跟本機一樣的攻擊解算邏輯（不用假造一個
 ## BattleParticipant 綁定，直接用 participant_id 查表）。
-func resolve_attack(participant_id: int, attack_power: int, gap_columns: Array) -> void:
+func resolve_attack(participant_id: int, attack_power: float, gap_columns: Array) -> void:
 	var participant: BattleParticipant = participants.get(participant_id)
 	if participant == null or participant.is_eliminated:
 		return
@@ -250,21 +250,37 @@ func resolve_attack(participant_id: int, attack_power: int, gap_columns: Array) 
 func _on_attack_ready(attack_power: int, gap_columns: Array, participant: BattleParticipant) -> void:
 	if participant.is_eliminated:
 		return
+	var effective_power := _comeback_adjusted_attack_power(attack_power, gap_columns.size())
 	## 攻擊/垃圾行結算是 host 權威（見 _is_host_authority 說明）——非權威裝置
 	## 自己不能跑出一份結算結果，改把原始資料轉送給 host（見
 	## attack_relay_needed 的說明，Script/BattleMatchSync.gd 負責真正轉送）。
+	## BattleSettings.single_line_counts_as_attack 是廣播同步過的房間設定,
+	## 非權威裝置這裡讀到的值跟 host 一致,在這裡先調整好、兩條路徑共用同一個
+	## 已調整過的值,不用在 host 端再判斷一次。
 	if not _is_host_authority:
 		print("[Sync] attack_ready participant=%d not host authority -> emit attack_relay_needed" % participant.id)
-		attack_relay_needed.emit(participant.id, attack_power, gap_columns)
+		attack_relay_needed.emit(participant.id, effective_power, gap_columns)
 		return
 	print("[Sync] attack_ready participant=%d host authority -> _apply_attack directly" % participant.id)
-	_apply_attack(participant, attack_power, gap_columns)
+	_apply_attack(participant, effective_power, gap_columns)
 
-func _apply_attack(participant: BattleParticipant, attack_power: int, gap_columns: Array) -> void:
+## 2026-09-23 使用者需求：落後方身上的垃圾通常只有一個缺口、只能一行一行清,
+## 清 1 行在標準 guideline 攻擊力表是 0 點（TetrisGameController.
+## LINE_ATTACK_BY_COUNT[1]），永遠反擊不了——開啟設定後,單純清 1 行（
+## raw_power<=0 這個條件保證只補「原本真的是 0 點」的情況,已經有分數的
+## T-Spin Mini 單行攻擊力是 1,不會被這裡蓋掉/降低)改算 0.5 點,兩次累積湊出
+## 1 點。故意不改 TetrisGameController 本體的攻擊力表——那份是官方 guideline
+## 標準分數,保持純邏輯、跟房間設定脫鉤,這個調整只在對戰層（這裡）疊加。
+func _comeback_adjusted_attack_power(raw_power: int, cleared_line_count: int) -> float:
+	if BattleSettings.single_line_counts_as_attack and cleared_line_count == 1 and raw_power <= 0:
+		return 0.5
+	return float(raw_power)
+
+func _apply_attack(participant: BattleParticipant, attack_power: float, gap_columns: Array) -> void:
 	participant.ratio_remainder += attack_power
 	var ratio: int = maxi(BattleSettings.damage_ratio, 1)
 	var points: int = int(participant.ratio_remainder / float(ratio))
-	participant.ratio_remainder = participant.ratio_remainder % ratio
+	participant.ratio_remainder = fmod(participant.ratio_remainder, float(ratio))
 	if points <= 0:
 		return
 

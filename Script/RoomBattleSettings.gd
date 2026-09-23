@@ -67,6 +67,8 @@ extends Control
 @onready var random_piece_toggle_landscape: CheckButton = $LandscapeLayout/SettingsScroll/SettingsList/RandomPieceRow/RandomPieceToggle
 @onready var ai_level_option_portrait: OptionButton = $PortraitLayout/SettingsScroll/SettingsList/AiLevelRow/AiLevelOption
 @onready var ai_level_option_landscape: OptionButton = $LandscapeLayout/SettingsScroll/SettingsList/AiLevelRow/AiLevelOption
+@onready var single_line_attack_toggle_portrait: CheckButton = $PortraitLayout/SettingsScroll/SettingsList/SingleLineAttackRow/SingleLineAttackToggle
+@onready var single_line_attack_toggle_landscape: CheckButton = $LandscapeLayout/SettingsScroll/SettingsList/SingleLineAttackRow/SingleLineAttackToggle
 
 @onready var status_label_portrait: Label = $PortraitLayout/StatusLabel
 @onready var status_label_landscape: Label = $LandscapeLayout/StatusLabel
@@ -133,6 +135,8 @@ func _ready() -> void:
 	random_piece_toggle_landscape.toggled.connect(_on_random_piece_toggled)
 	ai_level_option_portrait.item_selected.connect(_on_ai_level_selected)
 	ai_level_option_landscape.item_selected.connect(_on_ai_level_selected)
+	single_line_attack_toggle_portrait.toggled.connect(_on_single_line_attack_toggled)
+	single_line_attack_toggle_landscape.toggled.connect(_on_single_line_attack_toggled)
 
 	back_button_portrait.pressed.connect(_on_back_pressed)
 	back_button_landscape.pressed.connect(_on_back_pressed)
@@ -191,15 +195,39 @@ func _setup_room_info() -> void:
 	_apply_connection_address_display()
 
 	_initializing = false
-	# 房主端（一般開房流程，owner 立刻就是 HOST_PEER_ID 本人）：畫面剛生成時
-	# 的預設選項就是真正要送出去的第一份房間設定，補送一次讓 NetworkManager
-	# 的房間狀態跟畫面上顯示的完全一致（見 MultiplayerLobby._on_host_pressed()
-	# 已經帶了房間名稱，這裡不用再覆寫一次）。RemoteConnect.gd「成為伺服器」
-	# 流程開房當下 owner 還沒人認領，_is_owner 這裡是 false，不會跑進這個
-	# 分支，不會用空白的 UI 預設值覆蓋掉已經帶入的真正設定。
+	# 房主端（一般開房流程，owner 立刻就是 HOST_PEER_ID 本人）：先把畫面上的
+	# 選項同步成 NetworkManager 目前真正的權威值,再送一次讓兩邊完全一致
+	# （見 MultiplayerLobby._on_host_pressed() 已經帶了房間名稱，這裡不用
+	# 再覆寫一次）。RemoteConnect.gd「成為伺服器」流程開房當下 owner 還沒人
+	# 認領，_is_owner 這裡是 false，不會跑進這個分支，不會用空白的 UI 預設值
+	# 覆蓋掉已經帶入的真正設定。
+	# 2026-09-23 修正：這個畫面在多人流程裡不是只有「第一次開房」會進來——
+	# 分隊畫面按「返回」（見 NetworkManager.return_to_room_settings()）也會
+	# 讓房主重新落地在這裡，那時候 NetworkManager.room_max_players/
+	# room_map_id/room_password 早就是玩家剛剛改過的真正值（例如 3 人）,但
+	# _setup_max_players_options()/_setup_map_options() 一律把選單重設回
+	# DEFAULT_MAX_PLAYERS(=2)/index 0——原本這裡沒有先讀回 NetworkManager
+	# 現有值就直接呼叫 _apply_local_settings_to_network()，等於用「畫面剛
+	# 生成的預設值」把玩家剛剛設定好的值蓋掉、重新廣播出去，造成「設定 3 人
+	# 按返回變成 2 人」。改成先把畫面同步成 NetworkManager 現有值（跟非房主
+	# 那邊 _refresh_from_state() 的做法一致），再送出去——第一次開房時
+	# NetworkManager 的值本來就等於預設值，行為不變；返回時就會正確保留。
 	if _is_owner and multiplayer.get_unique_id() == NetworkManager.HOST_PEER_ID:
 		room_name_edit_portrait.text = NetworkManager.room_name
 		room_name_edit_landscape.text = NetworkManager.room_name
+		password_edit_portrait.text = NetworkManager.room_password
+		password_edit_landscape.text = NetworkManager.room_password
+		var map_index := 0
+		for i in MAP_OPTIONS.size():
+			if MAP_OPTIONS[i]["id"] == NetworkManager.room_map_id:
+				map_index = i
+				break
+		map_option_portrait.selected = map_index
+		map_option_landscape.selected = map_index
+		var players_index := MAX_PLAYERS_OPTIONS.find(NetworkManager.room_max_players)
+		if players_index >= 0:
+			max_players_option_portrait.selected = players_index
+			max_players_option_landscape.selected = players_index
 		_apply_local_settings_to_network()
 	_refresh_from_state()
 
@@ -312,6 +340,8 @@ func _set_settings_editable(editable: bool) -> void:
 	random_piece_toggle_landscape.disabled = not editable
 	ai_level_option_portrait.disabled = not editable
 	ai_level_option_landscape.disabled = not editable
+	single_line_attack_toggle_portrait.disabled = not editable
+	single_line_attack_toggle_landscape.disabled = not editable
 	_sync_garbage_cap_lines_editable()
 
 ## garbage_cap_lines 這個輸入框本來就有自己的「上面那個開關有沒有開」連動
@@ -348,6 +378,8 @@ func _populate_rule_controls_from_settings() -> void:
 	random_piece_toggle_landscape.button_pressed = BattleSettings.random_piece_per_player
 	_select_option_by_id(ai_level_option_portrait, BattleSettings.ai_level)
 	_select_option_by_id(ai_level_option_landscape, BattleSettings.ai_level)
+	single_line_attack_toggle_portrait.button_pressed = BattleSettings.single_line_counts_as_attack
+	single_line_attack_toggle_landscape.button_pressed = BattleSettings.single_line_counts_as_attack
 	_sync_garbage_cap_lines_editable()
 
 ## 非房主收到房主廣播回來的規則（或單機本地變更）時，把畫面刷新成最新值
@@ -550,6 +582,12 @@ func _on_random_piece_toggled(pressed: bool) -> void:
 	BattleSettings.random_piece_per_player = pressed
 	random_piece_toggle_portrait.button_pressed = pressed
 	random_piece_toggle_landscape.button_pressed = pressed
+	BattleSettings.sync_room_rules()
+
+func _on_single_line_attack_toggled(pressed: bool) -> void:
+	BattleSettings.single_line_counts_as_attack = pressed
+	single_line_attack_toggle_portrait.button_pressed = pressed
+	single_line_attack_toggle_landscape.button_pressed = pressed
 	BattleSettings.sync_room_rules()
 
 ## 2026-09-23 修正：多人模式下這顆按鈕（房主端顯示「開始」）原本只是本機

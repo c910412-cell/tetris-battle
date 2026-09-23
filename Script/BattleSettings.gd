@@ -35,6 +35,15 @@ var random_piece_per_player: bool = false
 var ai_level: int = 1
 const AI_LEVEL_NAMES: Array[String] = ["簡單", "普通", "高級"]
 
+## 2026-09-23 使用者需求：落後方身上的垃圾行通常只有一個缺口，只能一行一行
+## 清，而清 1 行在標準 guideline 攻擊力表裡是 0 點（見
+## TetrisGameController.LINE_ATTACK_BY_COUNT），永遠反擊不了——開啟這個設定
+## 後，清 1 行（且原本會是 0 點攻擊的情況,不含已經有分數的 T-Spin Mini 單行）
+## 改算 0.5 點攻擊力，兩次累積才湊出 1 點，讓落後方有機會反敗為勝（見
+## BattleDirector._comeback_adjusted_attack_power()）。預設關閉，維持官方
+## guideline 的標準規則,不影響原本的平衡。
+var single_line_counts_as_attack: bool = false
+
 ## 是否為「單人遊玩」模式（2026-09-21 補充：跟本地連線共用房間設定/分隊畫面，
 ## 差別是可以填 AI 機器人、不用等其他真人、「開始比賽」不會呼叫
 ## NetworkManager.start_match()）。Lobby.gd 的單人遊玩入口會把這個設成 true，
@@ -60,6 +69,7 @@ func reset_to_defaults() -> void:
 	garbage_cap_lines = 5
 	random_piece_per_player = false
 	ai_level = 1
+	single_line_counts_as_attack = false
 	settings_changed.emit()
 
 ## --- 分隊 -------------------------------------------------------------
@@ -210,6 +220,7 @@ func _pack_room_rules() -> Dictionary:
 		"garbage_cap_lines": garbage_cap_lines,
 		"random_piece_per_player": random_piece_per_player,
 		"ai_level": ai_level,
+		"single_line_counts_as_attack": single_line_counts_as_attack,
 	}
 
 func _apply_room_rules(rules: Dictionary) -> void:
@@ -223,6 +234,7 @@ func _apply_room_rules(rules: Dictionary) -> void:
 	garbage_cap_lines = rules.get("garbage_cap_lines", garbage_cap_lines)
 	random_piece_per_player = rules.get("random_piece_per_player", random_piece_per_player)
 	ai_level = rules.get("ai_level", ai_level)
+	single_line_counts_as_attack = rules.get("single_line_counts_as_attack", single_line_counts_as_attack)
 	settings_changed.emit()
 
 @rpc("any_peer", "reliable")
