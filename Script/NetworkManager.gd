@@ -750,6 +750,51 @@ func _advance_to_team_select() -> void:
 	get_tree().change_scene_to_file("res://Scenes/TeamSelect.tscn")
 
 
+## 2026-09-23 使用者需求：分隊畫面的「返回」應該只有房主能按，而且要帶大家
+## 一起回到房間設定畫面（原本 TeamSelect.gd 的返回鈕是純本機動作，誰都能按、
+## 也只有自己切場景,其他人卡在分隊畫面看不到房主在調設定）——跟
+## advance_to_team_select() 反方向的同一套「client 請求→host 驗證→host
+## 廣播」慣例。多人的房間設定畫面（RoomBattleSettings.tscn）本來就是疊在
+## MultiplayerLobby.tscn 上面的 overlay（不是獨立場景,見該檔案開頭的說明),
+## 這裡跟 _end_match() 一樣切回 MULTIPLAYER_LOBBY_SCENE_PATH,
+## MultiplayerLobby.gd._ready() 偵測到連線還在會自動重新疊出房間設定畫面,
+## 不用在這裡自己處理 overlay 生成。
+func return_to_room_settings() -> void:
+	if multiplayer.get_unique_id() != room_owner_peer_id:
+		return
+	if multiplayer.get_unique_id() == HOST_PEER_ID:
+		_do_return_to_room_settings()
+	else:
+		_request_return_to_room_settings.rpc_id(HOST_PEER_ID)
+
+
+@rpc("any_peer", "reliable")
+func _request_return_to_room_settings() -> void:
+	if multiplayer.get_unique_id() != HOST_PEER_ID:
+		return  # 防呆：只有伺服器本人才會真的受理
+	if multiplayer.get_remote_sender_id() != room_owner_peer_id:
+		return  # 防呆：只有目前認領到房主身分的那個人送的請求才算數
+	_do_return_to_room_settings()
+
+
+func _do_return_to_room_settings() -> void:
+	# 分隊結果不用清（跟 _do_advance_to_team_select() 進來時一樣,可能只是
+	# 房主想回去看一下設定,不代表要放棄目前分好的隊)——真的要重新分隊時,
+	# RoomBattleSettings._on_next_pressed() 再按下一步會自己清一次
+	# （push_reset_team_assignments()）。準備狀態要重置,回到房間設定畫面
+	# 邏輯上是全新一輪「大家重新準備」的起點。
+	for peer_id in _peer_ready:
+		_peer_ready[peer_id] = false
+	_broadcast_room_state()
+	_return_to_room_settings.rpc()
+
+
+## call_local——房主自己也走這條路徑切場景，不用另外維護一份重複邏輯。
+@rpc("authority", "call_local", "reliable")
+func _return_to_room_settings() -> void:
+	get_tree().change_scene_to_file(MULTIPLAYER_LOBBY_SCENE_PATH)
+
+
 ## 房主在房間等候畫面按下「開始」時呼叫（見 RoomLobby.gd）。單人房間
 ## （room_max_players 剛好等於目前總人數 1）不需要等任何人準備，房主自己
 ## 按下就能進——這裡用「目前有沒有其他人在房間裡」判斷，不是看

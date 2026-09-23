@@ -86,6 +86,10 @@ func _apply_owner_mode_ui() -> void:
 	start_button_landscape.visible = _is_owner
 	ready_button_portrait.visible = not _is_owner
 	ready_button_landscape.visible = not _is_owner
+	# 2026-09-23 使用者需求：返回也要跟開始/準備一樣只有房主看得到——單機
+	# 模式 _is_owner 永遠是 true（見上面欄位說明），行為不變。
+	back_button_portrait.visible = _is_owner
+	back_button_landscape.visible = _is_owner
 
 func _refresh_from_network_state() -> void:
 	_apply_owner_mode_ui()
@@ -267,5 +271,12 @@ func _on_start_pressed() -> void:
 	else:
 		NetworkManager.start_match()
 
+## 2026-09-23 修正：多人模式下這顆鈕原本只是本機自己切場景，其他人沒有
+## 跟著切過去、卡在分隊畫面（房主如果回去調設定，其他人完全看不到）——改叫
+## NetworkManager.return_to_room_settings()，讓房主之外的人也一起被帶回
+## 房間設定畫面（見該函式的說明）。單機模式沒有連線，維持原本直接切場景。
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://Scenes/RoomBattleSettings.tscn")
+	if BattleSettings.is_solo_mode:
+		get_tree().change_scene_to_file("res://Scenes/RoomBattleSettings.tscn")
+	else:
+		NetworkManager.return_to_room_settings()
