@@ -269,47 +269,69 @@ func _deliver_resume_snapshot(participant_id: int, snapshot: Dictionary) -> void
 	if participant:
 		participant.controller.restore_from_snapshot(snapshot)
 
-## --- E：下一輪共識（全員都按「繼續」才真的開始下一輪）---------------------
+## --- E：下一輪（跟房間設定/分隊畫面同一套「加入方按準備、房主按開始」）---
 
-## Battle.gd 的結算畫面按鈕在多人模式下呼叫這個,取代直接呼叫 _start_round()
-## ——單機/AI 對戰不會走到這裡（Battle.gd 那層直接判斷 is_solo_mode 分流)。
-func request_continue() -> void:
+## 2026-09-23 改版：使用者明確要求下一輪的轉場要跟房間設定/分隊畫面一致
+## （不要「大家按同一顆鈕、湊齊人數自動開始」的投票模式）——非房主按
+## 「準備」只標記/取消自己的確認狀態,不會自動開始；房主等所有其他真人都
+## 確認後,自己按「下一輪開始」（見 start_next_round()）才真的觸發。房主
+## 自己不用準備（_required_continue_count() 排除 _local_participant_id,
+## 跟 RoomBattleSettings/TeamSelect 房主不用準備是同一個道理)。
+## Battle.gd 的結算畫面「準備」按鈕在多人模式下呼叫這個——單機/AI 對戰不會
+## 走到這裡（Battle.gd 那層直接判斷 is_solo_mode 分流)。
+func request_continue(is_ready: bool) -> void:
 	if _is_host_authority:
-		_mark_continue(_local_participant_id)
+		_mark_continue(_local_participant_id, is_ready)
 	else:
-		_request_continue.rpc_id(NetworkManager.HOST_PEER_ID, _local_participant_id)
+		_request_continue.rpc_id(NetworkManager.HOST_PEER_ID, _local_participant_id, is_ready)
 
 @rpc("any_peer", "reliable")
-func _request_continue(participant_id: int) -> void:
+func _request_continue(participant_id: int, is_ready: bool) -> void:
 	if multiplayer.get_unique_id() != NetworkManager.HOST_PEER_ID:
 		return
 	if _resolve_sender_participant_id() != participant_id:
 		return
-	_mark_continue(participant_id)
+	_mark_continue(participant_id, is_ready)
 
-func _mark_continue(participant_id: int) -> void:
-	if _continue_confirmed.get(participant_id, false):
+func _mark_continue(participant_id: int, is_ready: bool) -> void:
+	if is_ready:
+		_continue_confirmed[participant_id] = true
+	else:
+		_continue_confirmed.erase(participant_id)
+	_sync_continue_progress.rpc(_continue_confirmed.size(), _required_continue_count())
+
+## 房主專用：Battle.gd 的「下一輪開始」按鈕呼叫——只有所有其他真人都已確認
+## 準備才會真的觸發（Battle.gd 那邊也會依同一個條件把按鈕 disabled,這裡是
+## 伺服器端再擋一次,不是只靠前端）。非房主呼叫直接忽略。
+func start_next_round() -> void:
+	if not _is_host_authority:
 		return
-	_continue_confirmed[participant_id] = true
-	var total := _required_continue_count()
-	_sync_continue_progress.rpc(_continue_confirmed.size(), total)
-	if _continue_confirmed.size() >= total:
-		_continue_confirmed.clear()
-		_broadcast_start_next_round.rpc()
+	if _continue_confirmed.size() < _required_continue_count():
+		return
+	_continue_confirmed.clear()
+	_broadcast_start_next_round.rpc()
 
-## 需要按「繼續」的人數：排除 AI（不會按按鈕）跟目前斷線暫停中的人（見對戰
-## 規格已確認的規則：下一輪開始不等他們,一樣盤面暫停),至少 1 人（理論上
-## 不會真的是 0,防呆用)。
+## 給 Battle.gd 算「房主開始鈕要等幾個人」的顯示文字用（結算畫面剛出現、
+## 還沒收到任何 continue_progress_updated 廣播那一刻的初始值)。
+func get_required_continue_count() -> int:
+	return _required_continue_count()
+
+## 需要按「準備」的人數：排除房主自己（不用準備,由他按「下一輪開始」)、
+## AI（不會按按鈕)跟目前斷線暫停中的人（見對戰規格已確認的規則：下一輪
+## 開始不等他們,一樣盤面暫停）。理論上結果可能是 0（目前沒有其他真人,不太
+## 會發生,但不用防呆成至少 1——不然房主的開始鈕會被自己卡住永遠打不開)。
 func _required_continue_count() -> int:
 	var count := 0
 	for pid in _director.participants:
+		if pid == _local_participant_id:
+			continue
 		if BattleSettings.is_ai(pid):
 			continue
 		var participant: BattleParticipant = _director.participants[pid]
 		if participant.is_disconnected:
 			continue
 		count += 1
-	return maxi(count, 1)
+	return count
 
 @rpc("authority", "call_local", "reliable")
 func _sync_continue_progress(confirmed: int, total: int) -> void:

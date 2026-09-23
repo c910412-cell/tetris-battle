@@ -132,6 +132,8 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var result_label_landscape: Label = $ResultLayer/LandscapeLayout/ResultLabel
 @onready var return_button_portrait: Button = $ResultLayer/PortraitLayout/ReturnButton
 @onready var return_button_landscape: Button = $ResultLayer/LandscapeLayout/ReturnButton
+@onready var next_round_ready_button_portrait: Button = $ResultLayer/PortraitLayout/ReadyButton
+@onready var next_round_ready_button_landscape: Button = $ResultLayer/LandscapeLayout/ReadyButton
 
 ## 2026-09-22：勝利星星移出結算文字下方的 VBoxContainer，改成場景裡跟
 ## HOLD/NEXT 標籤同一套做法的可排版節點（`StarsLabel`），使用者自己排位置、
@@ -154,6 +156,14 @@ const COUNTDOWN_SECONDS := 3.0
 var _director: BattleDirector
 var _local_peer_id: int = 1
 var _local_participant: BattleParticipant
+
+## 2026-09-23 連線對戰同步層：固定名字動態 add_child()（見該檔案開頭的
+## 說明），跨輪次持續存在,每次 _start_round() 建立新的 _director 都重新呼叫
+## bind_director() 換綁。單機/AI 對戰一樣會建立這個節點,但它內部
+## _is_networked() 會擋掉所有真正的 RPC,行為不受影響。
+var _match_sync: BattleMatchSync
+## 下一輪「準備」（非房主）：跟 TeamSelect.gd 的 _is_ready 同一套模式。
+var _is_next_round_ready: bool = false
 
 var _move_dir: int = 0
 var _das_timer: float = 0.0
@@ -202,7 +212,15 @@ func _ready() -> void:
 	_team_round_wins.clear()
 	return_button_portrait.pressed.connect(_on_result_button_pressed)
 	return_button_landscape.pressed.connect(_on_result_button_pressed)
+	next_round_ready_button_portrait.pressed.connect(_on_next_round_ready_pressed)
+	next_round_ready_button_landscape.pressed.connect(_on_next_round_ready_pressed)
 	get_viewport().size_changed.connect(_apply_orientation_layout)
+
+	_match_sync = BattleMatchSync.new()
+	_match_sync.name = "BattleMatchSync"
+	add_child(_match_sync)
+	_match_sync.next_round_confirmed.connect(_on_next_round_confirmed)
+	_match_sync.continue_progress_updated.connect(_on_continue_progress_updated)
 
 	pause_layer.visible = false
 	pause_resume_button_portrait.pressed.connect(_on_pause_resume_pressed)
@@ -234,6 +252,7 @@ func _start_round() -> void:
 	_director.round_ended.connect(_on_round_ended)
 	_director.garbage_settled.connect(_on_garbage_settled)
 	_director.participant_eliminated.connect(_on_participant_eliminated)
+	_match_sync.bind_director(_director, _is_host_authority(), _local_peer_id)
 
 	_set_score_text("分數: 0")
 	_set_lines_text("消行: 0")
@@ -528,30 +547,28 @@ func _request_leave_vote() -> void:
 		return
 	_handle_leave_vote(multiplayer.get_remote_sender_id())
 
+## 2026-09-23 修正：使用者明確要求「離開」是回到房間（可以直接開下一局），
+## 不是整個斷線回主選單——這裡原本自己送一個 _broadcast_leave_match RPC
+## 切去 Lobby.tscn（連 NetworkManager.cancel() 都要自己補），現在直接重用
+## NetworkManager.end_match() 既有的「房主在對局場景按返回」邏輯（見該函式
+## 說明）：保留房間本身（連線/房間設定），帶大家一起回到 MultiplayerLobby
+## （會自動重新開啟 RoomBattleSettings.tscn 房間等候畫面），房主可以直接開
+## 下一局，不用整個重新搜尋/加入。這個函式只會在 host 這台裝置上執行（見
+## _on_pause_leave_pressed()／_request_leave_vote() 的呼叫路徑），
+## end_match() 內部會再檢查一次「呼叫者是不是房主」才會真的生效。
 func _handle_leave_vote(sender_id: int) -> void:
 	if _leave_votes.has(sender_id):
 		return  # 每人只能投一次，不能反悔取消
 	_leave_votes[sender_id] = true
 	var total := _real_participant_count()
 	if _leave_votes.size() * 2 > total:
-		_broadcast_leave_match.rpc()
+		NetworkManager.end_match()
 	else:
 		_broadcast_leave_votes.rpc(_leave_votes.size(), total)
 
 @rpc("authority", "call_local", "reliable")
 func _broadcast_leave_votes(vote_count: int, total: int) -> void:
 	_update_vote_dots(vote_count, total)
-
-## 2026-09-23 修正：這裡原本只切場景,沒有呼叫 NetworkManager.cancel()——
-## 連線本身（multiplayer_peer）、_match_started、room_owner_peer_id 這些
-## 都沒有清掉,等於「看起來回到大廳了,但其實還連在線上、還被記成對局進行
-## 中」，之後如果這個人（或這台裝置）想重新搜尋/加入其他房間，房主端那邊
-## 的 _peer_ready 也永遠不會清掉這個人，房間人數/是否已滿會一直卡著錯的值
-## 。call_local 每個人都要清乾淨自己這份，不是只有觸發離開的那個人。
-@rpc("authority", "call_local", "reliable")
-func _broadcast_leave_match() -> void:
-	NetworkManager.cancel()
-	get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
 
 func _handle_input(delta: float) -> void:
 	var controller := _local_participant.controller
@@ -651,20 +668,55 @@ func _on_round_ended(winning_team: int) -> void:
 
 	if match_winner != -1:
 		_pending_next_round = false
-		_set_return_button_text("返回大廳")
 		if _local_participant and _local_participant.team_index == match_winner:
 			_set_result_text("你贏得整場比賽！")
 		else:
 			_set_result_text("你輸了整場比賽")
 	else:
 		_pending_next_round = true
-		_set_return_button_text("下一輪")
 		if winning_team == -1:
 			_set_result_text("這輪平手")
 		elif _local_participant and _local_participant.team_index == winning_team:
 			_set_result_text("你贏了這輪！")
 		else:
 			_set_result_text("你輸了這輪")
+
+	_refresh_result_buttons()
+
+## 多人模式下「下一輪」/「返回大廳」比照房間設定/分隊畫面「加入方按準備、
+## 房主按開始」模式（2026-09-23 使用者明確要求一致，不要「大家按同一顆鈕」
+## 的投票模式）——單機模式沒有連線、沒有其他人要等，維持原本「一顆鈕、
+## 自己按了就走」的行為。整場比賽結束時（!_pending_next_round）只有房主
+## 看得到「返回大廳」（NetworkManager.end_match() 本來就只有房主呼叫得動，
+## 見該函式說明），其他人只能等房主按。
+func _refresh_result_buttons() -> void:
+	if BattleSettings.is_solo_mode:
+		_set_return_button_visible(true)
+		_set_next_round_ready_button_visible(false)
+		_set_return_button_text("下一輪" if _pending_next_round else "返回大廳")
+		return_button_portrait.disabled = false
+		return_button_landscape.disabled = false
+		return
+
+	if not _pending_next_round:
+		_set_return_button_visible(_is_host_authority())
+		_set_next_round_ready_button_visible(false)
+		_set_return_button_text("返回大廳")
+		return_button_portrait.disabled = false
+		return_button_landscape.disabled = false
+		return
+
+	_is_next_round_ready = false
+	if _is_host_authority():
+		_set_return_button_visible(true)
+		_set_next_round_ready_button_visible(false)
+		_set_return_button_text("下一輪開始 (0/%d)" % _match_sync.get_required_continue_count())
+		return_button_portrait.disabled = true
+		return_button_landscape.disabled = true
+	else:
+		_set_return_button_visible(false)
+		_set_next_round_ready_button_visible(true)
+		_set_next_round_ready_text("準備")
 
 func _set_result_text(text: String) -> void:
 	result_label_portrait.text = text
@@ -673,6 +725,18 @@ func _set_result_text(text: String) -> void:
 func _set_return_button_text(text: String) -> void:
 	return_button_portrait.text = text
 	return_button_landscape.text = text
+
+func _set_return_button_visible(v: bool) -> void:
+	return_button_portrait.visible = v
+	return_button_landscape.visible = v
+
+func _set_next_round_ready_button_visible(v: bool) -> void:
+	next_round_ready_button_portrait.visible = v
+	next_round_ready_button_landscape.visible = v
+
+func _set_next_round_ready_text(text: String) -> void:
+	next_round_ready_button_portrait.text = text
+	next_round_ready_button_landscape.text = text
 
 ## 常態顯示在版面上的整場戰績摘要（2026-09-22 起不再只有結算畫面才顯示，
 ## _start_round()/_on_round_ended() 都會呼叫這個，直向/橫向兩份都寫,不是只
@@ -710,11 +774,45 @@ func _team_in_play(team_index: int) -> bool:
 			return true
 	return false
 
+## 單機：跟原本行為完全一樣，一顆鈕自己按了就走。多人：這顆鈕現在只有房主
+## 看得到（見 _refresh_result_buttons()），「下一輪」呼叫
+## _match_sync.start_next_round()（房主端再驗一次所有人是否都準備好）、
+## 「返回大廳」呼叫 NetworkManager.end_match()（帶大家一起回房間，不是整個
+## 斷線回主選單，見該函式說明）。
 func _on_result_button_pressed() -> void:
+	if BattleSettings.is_solo_mode:
+		if _pending_next_round:
+			_start_round()
+		else:
+			get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
+		return
 	if _pending_next_round:
-		_start_round()
+		_match_sync.start_next_round()
 	else:
-		get_tree().change_scene_to_file("res://Scenes/Lobby.tscn")
+		NetworkManager.end_match()
+
+## 非房主的「準備」/「取消準備」——跟 TeamSelect._on_ready_pressed() 同一套
+## 模式，切換本機狀態、送給 host 標記，等房主那邊看到大家都準備好才會按下
+## 「下一輪開始」。
+func _on_next_round_ready_pressed() -> void:
+	_is_next_round_ready = not _is_next_round_ready
+	_set_next_round_ready_text("取消準備" if _is_next_round_ready else "準備")
+	_match_sync.request_continue(_is_next_round_ready)
+
+## 房主按下「下一輪開始」、所有人都確認後,BattleMatchSync 廣播回來——大家
+## 一起真的開始下一輪。
+func _on_next_round_confirmed() -> void:
+	_start_round()
+
+## 房主端顯示「還差幾個人準備好」；非房主不需要這份文字（跟 TeamSelect 一樣
+## 只顯示「已準備/等待房主」的靜態文字,不用即時人數)。
+func _on_continue_progress_updated(confirmed: int, total: int) -> void:
+	if not _is_host_authority() or _pending_next_round == false:
+		return
+	_set_return_button_text("下一輪開始 (%d/%d)" % [confirmed, total])
+	var can_start := confirmed >= total
+	return_button_portrait.disabled = not can_start
+	return_button_landscape.disabled = not can_start
 
 ## 目前生效的那組（Portrait 或 Landscape）節點——portrait_layout.visible 就是
 ## _apply_orientation_layout() 剛設好的狀態，直接拿來判斷，不用另外存一份

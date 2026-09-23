@@ -28,3 +28,11 @@ offset_top = 540.0
 offset_right = 1060.0
 offset_bottom = 590.0
 text = "返回大廳"
+
+[node name="ReadyButton" type="Button" parent="."]
+visible = false
+offset_left = 860.0
+offset_top = 540.0
+offset_right = 1060.0
+offset_bottom = 590.0
+text = "準備"

@@ -552,9 +552,20 @@ func _on_random_piece_toggled(pressed: bool) -> void:
 ## 自己切場景，其他人沒有跟著切過去、卡在這個畫面——改叫
 ## NetworkManager.advance_to_team_select()，讓房主之外的人也會一起被帶去
 ## 分隊畫面（見該函式的說明）。單機模式沒有連線，維持原本直接切場景。
+## 2026-09-23 再修正：使用者回報「離開對戰回房間、重新開始」這條路徑分隊
+## 畫面會卡住開始不了——根因是 BattleSettings._placements 是跨場景持續存在
+## 的 autoload 狀態，TeamSelect.gd 進畫面時刻意不清空它（見該檔案 _ready()
+## 的說明：一般連線流程進分隊畫面時可能大家已經先分好隊了，本機自己清一次
+## 會偷偷跟大家真正的狀態岔開）——但這代表上一場比賽留下的分隊結果會一路
+## 殘留到下一場，可能佔掉格子或讓判斷「大家都分好隊了」的邏輯對不上目前這
+## 場真正在線上的人。改成房主每次要帶大家進分隊畫面前,先用既有的
+## push_reset_team_assignments()（伺服器端會再驗一次身分,非房主呼叫沒有
+## 作用,可以放心一定呼叫)清空、廣播給所有人，保證每次進分隊畫面都是乾淨的
+## 起點,不會有上一場的殘留。
 func _on_next_pressed() -> void:
 	BattleSettings.settings_changed.emit()
 	if _is_multiplayer:
+		BattleSettings.push_reset_team_assignments()
 		NetworkManager.advance_to_team_select()
 	else:
 		get_tree().change_scene_to_file("res://Scenes/TeamSelect.tscn")
