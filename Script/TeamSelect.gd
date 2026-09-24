@@ -125,7 +125,15 @@ func _build_grid(grid: GridContainer) -> Array:
 			## 2026-09-24 新增：真人格子要顯示頭貼（見 _refresh_cells()），讓圖示
 			## 依格子高度縮放，不要維持頭貼原始 256x256 撐爆整個格子。
 			cell.expand_icon = true
-			cell.add_theme_constant_override("icon_max_width", 100)
+			cell.add_theme_constant_override("icon_max_width", 72)
+			## 2026-09-24 使用者回報：頭貼原本固定貼在格子最左邊、文字獨立置中,
+			## 兩者中間空一大段、視覺上沒有「同一組」的感覺——icon_alignment
+			## 預設是 LEFT,要跟 alignment（文字,預設就是 CENTER）一樣設成
+			## CENTER,Godot 才會把頭貼+文字當一組整體置中,不是各自獨立對齊。
+			## h_separation 縮小讓頭貼跟文字排更緊。
+			cell.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			cell.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			cell.add_theme_constant_override("h_separation", 10)
 			var style := StyleBoxFlat.new()
 			style.bg_color = BattleSettings.TEAM_COLORS[team_index]
 			style.corner_radius_top_left = 12
