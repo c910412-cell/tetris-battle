@@ -72,6 +72,10 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var level_label_landscape: Label = $BoardLayer/LandscapeLayout/LevelLabel
 @onready var countdown_label_portrait: Label = $BoardLayer/PortraitLayout/CountdownLabel
 @onready var countdown_label_landscape: Label = $BoardLayer/LandscapeLayout/CountdownLabel
+## 2026-09-24 新增：本地玩家自己被淘汰、但隊伍還沒整個輸掉時顯示的提示——
+## 見 _on_participant_eliminated() 的說明。
+@onready var eliminated_label_portrait: Label = $BoardLayer/PortraitLayout/EliminatedLabel
+@onready var eliminated_label_landscape: Label = $BoardLayer/LandscapeLayout/EliminatedLabel
 
 @onready var portrait_layout: Control = $BoardLayer/PortraitLayout
 @onready var landscape_layout: Control = $BoardLayer/LandscapeLayout
@@ -193,6 +197,19 @@ var _opponent_panels: Dictionary = {}
 var _countdown_remaining: float = COUNTDOWN_SECONDS
 var _match_started: bool = false
 
+## 2026-09-24 新增：本地玩家自己的盤面疊到頂（game_over）時的白色波浪特效
+## ——由下往上一行一行填白，填滿整個盤面後再由上往下一行一行清空。純視覺,
+## 不影響任何遊戲邏輯判定（淘汰早在 controller.game_over 那一刻就已經定案）。
+const GAME_OVER_FLASH_ROW_SEC := 0.025
+var _game_over_flash_active: bool = false
+var _game_over_flash_timer: float = 0.0
+## 1＝由下往上填白（尚未點亮的行數上限，從 VISIBLE_HEIGHT 開始遞減到 0）；
+## 2＝由上往下清空（已清空的行數,從 0 開始遞增到 VISIBLE_HEIGHT）。兩個
+## 階段都用同一個意義：目前「白色」的行是 [_game_over_flash_row,
+## VISIBLE_HEIGHT-1]（含）這個連續區間,畫的時候只需要畫一個矩形。
+var _game_over_flash_phase: int = 0
+var _game_over_flash_row: int = 0
+
 ## bo-N 戰績：team_index -> 已經贏的回合數，整場比賽期間持續累加（跨回合
 ## 不歸零，只有整場比賽結束、返回大廳才會消失）。
 var _team_round_wins: Dictionary = {}
@@ -280,6 +297,12 @@ func _start_round() -> void:
 		_local_participant.controller.score_changed.connect(_on_score_changed)
 		_local_participant.controller.lines_cleared.connect(_on_lines_cleared)
 		_local_participant.controller.level_changed.connect(_on_level_changed)
+		_local_participant.controller.game_over.connect(_on_local_game_over)
+
+	_game_over_flash_active = false
+	_game_over_flash_phase = 0
+	eliminated_label_portrait.visible = false
+	eliminated_label_landscape.visible = false
 
 	_rebuild_opponent_panels()
 	_apply_orientation_layout()
@@ -419,6 +442,10 @@ func _process(delta: float) -> void:
 	## 上不可靠,不是接錯訊號。改用跟其他按鈕完全相同、已確認會動的機制。
 	if Input.is_action_just_pressed("tetris_pause"):
 		_on_pause_pressed()
+
+	if _game_over_flash_active:
+		_advance_game_over_flash(delta)
+		queue_redraw()
 
 	if not _match_started:
 		_countdown_remaining -= delta
@@ -702,9 +729,38 @@ func _on_garbage_settled(participant_id: int, lines: int) -> void:
 	PlayerSettings.vibrate(30 + lines * 20)
 
 ## 自己被淘汰（旁觀模式開始）給一個比消行更明顯的震動；隊友/對手淘汰不用管。
+## 2026-09-24 使用者回報：跟隊友同隊時,自己先被淘汰但隊伍還沒整個輸掉,
+## 畫面只是單純凍結、沒有任何說明——容易讓人以為當機。加一個「已被淘汰」
+## 提示,持續顯示到這一輪真的結束（_on_round_ended() 那時候整個 ResultLayer
+## 會蓋上去,不用特別隱藏這個提示,但 _start_round() 開新的一輪時會重設)。
 func _on_participant_eliminated(participant_id: int) -> void:
 	if _local_participant and participant_id == _local_participant.id:
 		PlayerSettings.vibrate(200)
+		eliminated_label_portrait.visible = true
+		eliminated_label_landscape.visible = true
+
+## 本地玩家自己的盤面疊到頂——觸發白色波浪特效（見 GAME_OVER_FLASH_ROW_SEC
+## 的說明），跟上面 _on_participant_eliminated() 的文字提示是兩個獨立的
+## 效果，不用互相等待。
+func _on_local_game_over() -> void:
+	_game_over_flash_active = true
+	_game_over_flash_timer = 0.0
+	_game_over_flash_phase = 1
+	_game_over_flash_row = TetrisBoard.VISIBLE_HEIGHT
+
+func _advance_game_over_flash(delta: float) -> void:
+	_game_over_flash_timer += delta
+	while _game_over_flash_active and _game_over_flash_timer >= GAME_OVER_FLASH_ROW_SEC:
+		_game_over_flash_timer -= GAME_OVER_FLASH_ROW_SEC
+		if _game_over_flash_phase == 1:
+			_game_over_flash_row -= 1
+			if _game_over_flash_row <= 0:
+				_game_over_flash_row = 0
+				_game_over_flash_phase = 2
+		else:
+			_game_over_flash_row += 1
+			if _game_over_flash_row >= TetrisBoard.VISIBLE_HEIGHT:
+				_game_over_flash_active = false
 
 ## bo-N 判定：贏這輪的隊伍戰績+1，達到 BattleSettings.rounds_to_win 就是整場
 ## 比賽結束；沒達到就顯示這輪結果，按鈕變成「下一輪」。
@@ -909,6 +965,8 @@ func _draw() -> void:
 
 	TetrisBoardRenderer.draw_board_frame(self, _board_origin, _cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, controller.board, _board_origin, _cell_size, controller.get_clearing_rows())
+	if _game_over_flash_active:
+		_draw_game_over_flash()
 	if not controller.is_game_over and not controller.is_clearing():
 		TetrisBoardRenderer.draw_ghost(self, controller, _board_origin, _cell_size)
 		TetrisBoardRenderer.draw_active_piece(self, controller, _board_origin, _cell_size)
@@ -957,3 +1015,15 @@ func _draw_settlement_bar() -> void:
 	var progress := _director.get_settlement_progress()
 	draw_rect(bar_rect, Color(0.2, 0.2, 0.24), true)
 	draw_rect(Rect2(bar_rect.position, Vector2(bar_rect.size.x * progress, bar_rect.size.y)), Color(0.9, 0.6, 0.2), true)
+
+## 見 GAME_OVER_FLASH_ROW_SEC 的說明——目前「白色」的行永遠是
+## [_game_over_flash_row, VISIBLE_HEIGHT-1] 這個連續區間，一個矩形畫完,
+## 蓋在剛畫好的鎖定格子上面（見 _draw() 的呼叫順序）。
+func _draw_game_over_flash() -> void:
+	if _game_over_flash_row >= TetrisBoard.VISIBLE_HEIGHT:
+		return
+	var rect := Rect2(
+		_board_origin + Vector2(0, _game_over_flash_row * _cell_size),
+		Vector2(_cell_size * TetrisBoard.WIDTH, _cell_size * (TetrisBoard.VISIBLE_HEIGHT - _game_over_flash_row)),
+	)
+	draw_rect(rect, Color(1, 1, 1, 1), true)
