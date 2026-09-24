@@ -1,0 +1,81 @@
+[gd_scene format=3]
+
+[node name="ProfileScreenLayoutLandscape" type="Control"]
+mouse_filter = 2
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="FrameGuide" type="ReferenceRect" parent="."]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 0.7)
+border_width = 4.0
+
+[node name="TitleLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 40.0
+offset_right = 700.0
+offset_bottom = 110.0
+theme_override_font_sizes/font_size = 44
+text = "個人資料"
+
+[node name="AvatarPreview" type="TextureRect" parent="."]
+offset_left = 60.0
+offset_top = 160.0
+offset_right = 300.0
+offset_bottom = 400.0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameEdit" type="LineEdit" parent="."]
+offset_left = 60.0
+offset_top = 430.0
+offset_right = 500.0
+offset_bottom = 500.0
+theme_override_font_sizes/font_size = 30
+max_length = 12
+alignment = 1
+placeholder_text = "輸入名稱"
+
+[node name="AvatarSectionLabel" type="Label" parent="."]
+offset_left = 600.0
+offset_top = 160.0
+offset_right = 1240.0
+offset_bottom = 220.0
+theme_override_font_sizes/font_size = 26
+text = "選擇頭貼"
+
+[node name="AvatarGrid" type="GridContainer" parent="."]
+offset_left = 600.0
+offset_top = 220.0
+offset_right = 1860.0
+offset_bottom = 460.0
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+
+[node name="AchievementsSectionLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 560.0
+offset_right = 700.0
+offset_bottom = 620.0
+theme_override_font_sizes/font_size = 26
+text = "成就"
+
+[node name="AchievementsLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 620.0
+offset_right = 1860.0
+offset_bottom = 700.0
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "敬請期待"
+
+[node name="CloseButton" type="Button" parent="."]
+offset_left = 60.0
+offset_top = 900.0
+offset_right = 500.0
+offset_bottom = 988.0
+theme_override_font_sizes/font_size = 26
+text = "返回"

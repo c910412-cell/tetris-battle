@@ -30,16 +30,6 @@ const LOCK_DELAY_SEC := 0.5
 const MAX_LOCK_RESETS := 15
 
 const BASE_GRAVITY_SEC := 1.0
-## 軟降（左側「↓」鍵，按住喬位置用）原本 0.05 秒一格（20 格/秒）幾乎等於
-## 瞬間落底，跟硬降（右側「⤓」鍵）手感沒有差別——2026-09-21 使用者回報改慢，
-## 改成明確比硬降慢、但比一般重力快很多的固定速度，按住時方塊用這個速度
-## 穩定下落，放開就停。同日使用者再回報 0.15 秒偏慢，改成 0.05（原速）跟
-## 0.15（改慢後）中間值（0.1）。2026-09-22 使用者再回報：希望每一格的停留
-## 時間更短一點（下降感覺更快），但方塊要「確實經過每一格」不能一次跳過
-## 好幾格——這兩件事分開處理：停留時間縮短見這裡；「不能跳格」是
-## tick() 那邊改成每次最多真的移動一格，見 tick() 的說明。改成 0.06 後
-## 同日使用者又回報還是偏快，往回調到 0.06 跟原本 0.1 中間。
-const SOFT_DROP_GRAVITY_SEC := 0.08
 const LINES_PER_LEVEL := 10
 const GRAVITY_LEVEL_FACTOR := 0.85
 const MIN_GRAVITY_SEC := 0.1
@@ -98,6 +88,18 @@ var score: int = 0
 var lines_cleared_total: int = 0
 var level: int = 1
 var is_game_over: bool = false
+
+## 軟降（按住「↓」，手勢/按鈕共用同一套輪詢邏輯）的下落間隔秒數——原本是
+## 寫死的常數 SOFT_DROP_GRAVITY_SEC，2026-09-21/22 使用者陸續回報調過幾輪
+## 手感（0.05 太快幾乎等於硬降→0.15 太慢→中間值 0.1→0.06→最後定案在原本
+## 0.1 跟 0.06 中間）。2026-09-24 改成可設定的實例欄位、放進
+## PlayerSettings.soft_drop_interval_sec 讓玩家自己在設定畫面調——這個類別
+## 故意不直接讀 PlayerSettings（保持純邏輯、不依賴任何 autoload，可以離線
+## 單獨測試,見檔案開頭的說明),呼叫端（Board.gd/Battle.gd）在建立本地玩家
+## 的 controller 之後自己把這個欄位設成 PlayerSettings 目前的值。這裡的
+## 0.08 只是「還沒被呼叫端覆寫時」的保底預設值，實際生效的是 PlayerSettings
+## 那份、跨場景持久保存的設定。
+var soft_drop_gravity_sec: float = 0.08
 
 var _active_type: TetrisPieceData.PieceType
 var _active_rotation: int = 0
@@ -185,7 +187,7 @@ func tick(delta: float) -> void:
 			_finish_clear()
 		return
 
-	var gravity_interval := SOFT_DROP_GRAVITY_SEC if _soft_drop_active else _current_gravity_interval()
+	var gravity_interval := soft_drop_gravity_sec if _soft_drop_active else _current_gravity_interval()
 	## 2026-09-22：_gravity_timer 最多只留一個 interval 的量，不會累積補跳
 	## 額度——原本的寫法（只把單一幀擋在一步，但多出來的時間留到下一幀繼續
 	## 消化）在掉幀/裝置效能不穩時，會讓接下來好幾幀連續觸發下移，玩起來

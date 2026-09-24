@@ -27,7 +27,10 @@
 extends Node2D
 
 const DAS_SEC := 0.2
-const ARR_SEC := 0.05
+## 2026-09-24：改讀 PlayerSettings.move_repeat_sec（大廳設定畫面可調，跟
+## Battle.gd 共用同一份設定），不再是這裡寫死的常數——原本這裡跟 Battle.gd
+## 各自寫死一份、還沒同步過（這裡停在舊的 0.05），統一之後不會再有兩邊
+## 不一致的問題。
 
 ## 「無盡挑戰」模式的最高分紀錄（2026-09-21 補上，見大廳規格）：本機存檔，
 ## 不是連線排行榜。只有從 Lobby 的「無盡挑戰」入口玩才有意義，但這個場景
@@ -96,6 +99,13 @@ const HIGH_SCORE_SAVE_PATH := "user://endless_high_score.json"
 @onready var return_button_portrait: Button = $GameOverLayer/PortraitLayout/ReturnButton
 @onready var return_button_landscape: Button = $GameOverLayer/LandscapeLayout/ReturnButton
 
+## 2026-09-24 新增：暫停鈕旁邊的設定按鈕，跟 Battle.gd 同一份 Settings.tscn，
+## 跟大廳齒輪按鈕同一套 instantiate/add_child/tree_exited 慣例。
+@onready var board_settings_button_portrait: Button = $BoardLayer/PortraitLayout/BoardSettingsButton
+@onready var board_settings_button_landscape: Button = $BoardLayer/LandscapeLayout/BoardSettingsButton
+@export var settings_scene: PackedScene = preload("res://Scenes/Settings.tscn")
+var _settings_instance: Control = null
+
 var _controller: TetrisGameController
 
 var _move_dir: int = 0
@@ -116,6 +126,7 @@ var _is_new_high_score: bool = false
 
 func _ready() -> void:
 	_controller = TetrisGameController.new()
+	_controller.soft_drop_gravity_sec = PlayerSettings.soft_drop_interval_sec
 	_controller.score_changed.connect(_on_score_changed)
 	_controller.lines_cleared.connect(_on_lines_cleared)
 	_controller.level_changed.connect(_on_level_changed)
@@ -136,11 +147,15 @@ func _ready() -> void:
 	pause_leave_button_portrait.pressed.connect(_on_return_pressed)
 	pause_leave_button_landscape.pressed.connect(_on_return_pressed)
 
+	board_settings_button_portrait.pressed.connect(_on_board_settings_pressed)
+	board_settings_button_landscape.pressed.connect(_on_board_settings_pressed)
+
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
 
 	PlayerSettings.settings_changed.connect(_apply_gesture_controls)
 	_apply_gesture_controls()
+	PlayerSettings.settings_changed.connect(_apply_soft_drop_setting)
 
 func _on_pause_pressed() -> void:
 	if _is_paused or _controller.is_game_over:
@@ -180,6 +195,26 @@ func _apply_gesture_controls() -> void:
 		zone.visible = use_gestures
 		zone.mouse_filter = Control.MOUSE_FILTER_STOP if use_gestures else Control.MOUSE_FILTER_IGNORE
 
+func _apply_soft_drop_setting() -> void:
+	_controller.soft_drop_gravity_sec = PlayerSettings.soft_drop_interval_sec
+
+## 同樣的 CanvasLayer 包裝理由見 Battle.gd._on_battle_settings_pressed()
+## 的說明——Board 也是 Node2D，直接掛在 self 上會被 BoardLayer/PauseLayer/
+## GameOverLayer 這些 layer 1 的 CanvasLayer 蓋過去。
+func _on_board_settings_pressed() -> void:
+	if _settings_instance and is_instance_valid(_settings_instance):
+		return
+	var overlay_layer := CanvasLayer.new()
+	overlay_layer.layer = 5
+	add_child(overlay_layer)
+	_settings_instance = settings_scene.instantiate()
+	overlay_layer.add_child(_settings_instance)
+	_settings_instance.tree_exited.connect(_on_board_settings_closed.bind(overlay_layer))
+
+func _on_board_settings_closed(overlay_layer: CanvasLayer) -> void:
+	_settings_instance = null
+	overlay_layer.queue_free()
+
 func _process(delta: float) -> void:
 	## 2026-09-22：暫停鍵改成跟其他 7 個按鈕一樣走 input_action + 輪詢
 	## is_action_just_pressed（不再連 Button 的 pressed/button_up 訊號）——
@@ -215,8 +250,9 @@ func _handle_input(delta: float) -> void:
 		_das_timer += delta
 		if _das_timer >= DAS_SEC:
 			_arr_timer += delta
-			while _arr_timer >= ARR_SEC:
-				_arr_timer -= ARR_SEC
+			var arr_sec := maxf(PlayerSettings.move_repeat_sec, 0.01)
+			while _arr_timer >= arr_sec:
+				_arr_timer -= arr_sec
 				_controller.move(dir)
 
 	_controller.set_soft_drop(Input.is_action_pressed("tetris_soft_drop"))

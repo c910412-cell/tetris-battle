@@ -53,14 +53,11 @@
 extends Node2D
 
 const DAS_SEC := 0.2
-## 2026-09-23 使用者回報手機端左右移動（按住不放的連續移動）感覺太慢——這個
-## 是按住之後每一格之間的間隔，數字越小移動越快；手勢
-## （TetrisGestureMoveZone.gd）本來就是靠 Input.action_press() 接到跟按鈕
-## 完全同一套 DAS/ARR 輪詢邏輯（見該檔案開頭的說明），這裡改一次兩邊會一起
-## 變快，不用分開調。原本 0.05 先調快到 0.03，不夠快/太快之後再依回饋繼續
-## 調（跟 TetrisGameController.SOFT_DROP_GRAVITY_SEC 當初的調法一樣,見該
-## 常數的說明——同一種手感問題，之前也是分好幾輪才調到使用者滿意的值）。
-const ARR_SEC := 0.03
+## 2026-09-24：按住不放的連續移動間隔（ARR）原本是這裡寫死的常數，使用者
+## 要求把這類「手感」細項移到大廳設定畫面可以自己調——改成讀
+## PlayerSettings.move_repeat_sec（見該檔案的說明，按鈕跟手勢共用同一套
+## 輪詢邏輯,改一次兩邊一起變）,不再需要本機常數。DAS（按住到開始連續移動
+## 前的延遲）維持寫死,使用者這次沒有要求這個也能調。
 const COUNTDOWN_SECONDS := 3.0
 
 ## HUD 文字 2026-09-22 起併回 BattleLayoutPortrait/Landscape.tscn 跟棋盤/按鈕
@@ -160,9 +157,19 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var pause_vote_dots_label_portrait: Label = $PauseLayer/PortraitLayout/VoteDotsLabel
 @onready var pause_vote_dots_label_landscape: Label = $PauseLayer/LandscapeLayout/VoteDotsLabel
 
+## 2026-09-24 新增：暫停鈕旁邊的設定按鈕，開的是跟大廳齒輪按鈕完全同一份
+## Settings.tscn（見 Lobby.gd._on_settings_pressed() 的 instantiate/
+## add_child/tree_exited 慣例），對戰中也能調移動速度等個人設定,不用退出對戰
+## 才能改。
+@onready var battle_settings_button_portrait: Button = $BoardLayer/PortraitLayout/BattleSettingsButton
+@onready var battle_settings_button_landscape: Button = $BoardLayer/LandscapeLayout/BattleSettingsButton
+
 var _director: BattleDirector
 var _local_peer_id: int = 1
 var _local_participant: BattleParticipant
+
+@export var settings_scene: PackedScene = preload("res://Scenes/Settings.tscn")
+var _settings_instance: Control = null
 
 ## 2026-09-23 連線對戰同步層：固定名字動態 add_child()（見該檔案開頭的
 ## 說明），跨輪次持續存在,每次 _start_round() 建立新的 _director 都重新呼叫
@@ -235,7 +242,11 @@ func _ready() -> void:
 	pause_leave_button_portrait.pressed.connect(_on_pause_leave_pressed)
 	pause_leave_button_landscape.pressed.connect(_on_pause_leave_pressed)
 
+	battle_settings_button_portrait.pressed.connect(_on_battle_settings_pressed)
+	battle_settings_button_landscape.pressed.connect(_on_battle_settings_pressed)
+
 	PlayerSettings.settings_changed.connect(_apply_gesture_controls)
+	PlayerSettings.settings_changed.connect(_apply_soft_drop_setting)
 	_apply_gesture_controls()
 
 	_start_round()
@@ -260,6 +271,7 @@ func _start_round() -> void:
 	_director.garbage_settled.connect(_on_garbage_settled)
 	_director.participant_eliminated.connect(_on_participant_eliminated)
 	_match_sync.bind_director(_director, _is_host_authority(), _local_peer_id)
+	_apply_soft_drop_setting()
 
 	_set_score_text("分數: 0")
 	_set_lines_text("消行: 0")
@@ -321,6 +333,38 @@ func _apply_gesture_controls() -> void:
 	for zone in [gesture_zone_portrait, gesture_zone_landscape, move_gesture_zone_portrait, move_gesture_zone_landscape]:
 		zone.visible = use_gestures
 		zone.mouse_filter = Control.MOUSE_FILTER_STOP if use_gestures else Control.MOUSE_FILTER_IGNORE
+
+## 跟 Lobby.gd._on_settings_pressed() 同一套 instantiate/add_child/
+## tree_exited 慣例——不會影響對局本身（暫停/繼續都不用觸發），純粹是疊在
+## 畫面上的個人設定視窗。
+## Battle 這個節點本身是 Node2D，不像 Lobby.gd 那樣自己就是 CanvasLayer——
+## 直接 add_child() 到 self 的話,Settings 畫面會落在預設的 layer 0,被
+## BoardLayer/PauseLayer/ResultLayer 這幾個 layer 1 的 CanvasLayer 蓋過去
+## （實機截圖證實：暫停鈕旁邊按下去,設定畫面確實跳出來,但棋盤觸控按鈕/HUD
+## 反而疊在設定畫面上面,擋住看不清楚)。改成包一層 CanvasLayer（layer 設
+## 比 1 高)再把 Settings 塞進去,保證蓋過對戰畫面本身的所有 CanvasLayer。
+func _on_battle_settings_pressed() -> void:
+	if _settings_instance and is_instance_valid(_settings_instance):
+		return
+	var overlay_layer := CanvasLayer.new()
+	overlay_layer.layer = 5
+	add_child(overlay_layer)
+	_settings_instance = settings_scene.instantiate()
+	overlay_layer.add_child(_settings_instance)
+	_settings_instance.tree_exited.connect(_on_battle_settings_closed.bind(overlay_layer))
+
+func _on_battle_settings_closed(overlay_layer: CanvasLayer) -> void:
+	_settings_instance = null
+	overlay_layer.queue_free()
+
+## 軟降速度是個人手感偏好（PlayerSettings.soft_drop_interval_sec），只套用
+## 在本地玩家自己的 controller——AI/遠端真人的 controller 不需要也不該受這台
+## 裝置的個人設定影響（見 TetrisGameController.soft_drop_gravity_sec 的
+## 說明）。連上 PlayerSettings.settings_changed，玩家在對戰中用暫停鈕旁邊
+## 新增的設定按鈕調整時可以立刻生效，不用等到下一輪重開才套用。
+func _apply_soft_drop_setting() -> void:
+	if _local_participant:
+		_local_participant.controller.soft_drop_gravity_sec = PlayerSettings.soft_drop_interval_sec
 
 ## 依目前對手人數（1~3，超過 3 個先卡在 3 人那組版面，多出來的人重複塞進
 ## 最後一個 Slot——目前單人模式最多 3 隻 AI 碰不到這個上限，之後連線多人
@@ -601,8 +645,9 @@ func _handle_input(delta: float) -> void:
 		_das_timer += delta
 		if _das_timer >= DAS_SEC:
 			_arr_timer += delta
-			while _arr_timer >= ARR_SEC:
-				_arr_timer -= ARR_SEC
+			var arr_sec := maxf(PlayerSettings.move_repeat_sec, 0.01)
+			while _arr_timer >= arr_sec:
+				_arr_timer -= arr_sec
 				controller.move(dir)
 
 	controller.set_soft_drop(Input.is_action_pressed("tetris_soft_drop"))

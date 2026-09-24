@@ -15,6 +15,13 @@
 [ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
 [ext_resource type="Script" path="res://Script/PendingDotsAnchor.gd" id="14"]
 
+[sub_resource type="StyleBoxFlat" id="BattleSettingsButtonStyle"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 0.7)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
 [node name="BattleLayoutLandscape" type="Control"]
 mouse_filter = 2
 offset_right = 1920.0
@@ -285,6 +292,19 @@ stretch_mode = 5
 script = ExtResource("1")
 button_color = Color(1, 0.6, 0.1, 0.5)
 input_action = "tetris_pause"
+
+[node name="BattleSettingsButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -240.0
+offset_top = 50.0
+offset_right = -150.0
+offset_bottom = 150.0
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("BattleSettingsButtonStyle")
+theme_override_styles/pressed = SubResource("BattleSettingsButtonStyle")
+theme_override_styles/hover = SubResource("BattleSettingsButtonStyle")
+text = "⚙"
 
 [node name="ScorePlaceholder" type="ReferenceRect" parent="."]
 offset_left = 40.0

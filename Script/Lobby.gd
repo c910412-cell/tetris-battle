@@ -39,9 +39,17 @@ class_name Lobby
 @onready var endless_cell_landscape: Button = $Root/LandscapeLayout/EndlessCell
 @onready var settings_button_portrait: Button = $Root/PortraitLayout/SettingsButton
 @onready var settings_button_landscape: Button = $Root/LandscapeLayout/SettingsButton
+## 2026-09-24 新增：左上角頭貼方塊＋名稱長條，跟右上角齒輪按鈕同一套
+## instantiate/add_child/tree_exited 慣例，開的是 ProfileScreen.tscn。
+@export var profile_scene: PackedScene = preload("res://Scenes/ProfileScreen.tscn")
+@onready var avatar_button_portrait: TextureButton = $Root/PortraitLayout/AvatarButton
+@onready var avatar_button_landscape: TextureButton = $Root/LandscapeLayout/AvatarButton
+@onready var name_plate_portrait: Label = $Root/PortraitLayout/NamePlate
+@onready var name_plate_landscape: Label = $Root/LandscapeLayout/NamePlate
 
 var _multiplayer_lobby_instance: Control = null
 var _settings_instance: Control = null
+var _profile_instance: Control = null
 
 
 func _ready() -> void:
@@ -53,6 +61,11 @@ func _ready() -> void:
 	endless_cell_landscape.pressed.connect(_on_endless_pressed)
 	settings_button_portrait.pressed.connect(_on_settings_pressed)
 	settings_button_landscape.pressed.connect(_on_settings_pressed)
+	avatar_button_portrait.pressed.connect(_on_avatar_pressed)
+	avatar_button_landscape.pressed.connect(_on_avatar_pressed)
+
+	PlayerProfile.profile_changed.connect(_refresh_profile_display)
+	_refresh_profile_display()
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
@@ -99,6 +112,26 @@ func _on_settings_pressed() -> void:
 
 func _on_settings_closed() -> void:
 	_settings_instance = null
+
+
+func _on_avatar_pressed() -> void:
+	if _profile_instance and is_instance_valid(_profile_instance):
+		return
+	_profile_instance = profile_scene.instantiate()
+	add_child(_profile_instance)
+	_profile_instance.tree_exited.connect(_on_profile_closed)
+
+
+func _on_profile_closed() -> void:
+	_profile_instance = null
+
+
+func _refresh_profile_display() -> void:
+	var texture := PlayerProfile.get_avatar_texture()
+	avatar_button_portrait.texture_normal = texture
+	avatar_button_landscape.texture_normal = texture
+	name_plate_portrait.text = PlayerProfile.player_name
+	name_plate_landscape.text = PlayerProfile.player_name
 
 
 func _on_solo_play_pressed() -> void:
