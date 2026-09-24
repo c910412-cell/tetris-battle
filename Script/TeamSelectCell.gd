@@ -9,12 +9,17 @@ var team_index: int = -1
 var slot_index: int = -1
 ## 指回 TeamSelect.gd，實際的搬移/驗證邏輯都在那邊做，這裡只轉發座標。
 var controller: Node = null
+## 2026-09-24：格子的視覺內容改成自訂的 Content/Avatar/NameLabel 子節點
+## （見 TeamSelect.gd._build_grid()），Button 本身的 text 不再拿來顯示,
+## 拖曳預覽要顯示的名字改讀這個欄位（TeamSelect._refresh_cells() 負責
+## 同步賦值）。
+var display_name: String = ""
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if controller == null or not controller.can_drag_cell(team_index, slot_index):
 		return null
 	var preview := Label.new()
-	preview.text = text
+	preview.text = display_name
 	preview.add_theme_font_size_override("font_size", 22)
 	set_drag_preview(preview)
 	return {"from_team": team_index, "from_slot": slot_index}

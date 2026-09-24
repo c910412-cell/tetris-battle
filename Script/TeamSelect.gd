@@ -121,19 +121,6 @@ func _build_grid(grid: GridContainer) -> Array:
 			cell.controller = self
 			cell.custom_minimum_size = Vector2(0, 140)
 			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			cell.add_theme_font_size_override("font_size", 22)
-			## 2026-09-24 新增：真人格子要顯示頭貼（見 _refresh_cells()），讓圖示
-			## 依格子高度縮放，不要維持頭貼原始 256x256 撐爆整個格子。
-			cell.expand_icon = true
-			cell.add_theme_constant_override("icon_max_width", 72)
-			## 2026-09-24 使用者回報：頭貼原本固定貼在格子最左邊、文字獨立置中,
-			## 兩者中間空一大段、視覺上沒有「同一組」的感覺——icon_alignment
-			## 預設是 LEFT,要跟 alignment（文字,預設就是 CENTER）一樣設成
-			## CENTER,Godot 才會把頭貼+文字當一組整體置中,不是各自獨立對齊。
-			## h_separation 縮小讓頭貼跟文字排更緊。
-			cell.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			cell.alignment = HORIZONTAL_ALIGNMENT_CENTER
-			cell.add_theme_constant_override("h_separation", 10)
 			var style := StyleBoxFlat.new()
 			style.bg_color = BattleSettings.TEAM_COLORS[team_index]
 			style.corner_radius_top_left = 12
@@ -145,6 +132,46 @@ func _build_grid(grid: GridContainer) -> Array:
 			cell.add_theme_stylebox_override("pressed", style)
 			cell.add_theme_stylebox_override("disabled", style)
 			cell.pressed.connect(_on_cell_pressed.bind(team_index, row))
+
+			## 2026-09-24 使用者需求：頭貼在上、名稱在下，不能疊在一起——Godot
+			## Button 內建的 icon+text 只能排成同一列（水平），沒有「圖上字下」
+			## 的版面選項（上一輪用 icon_alignment/alignment 都設 CENTER 頂多讓
+			## 兩者當同一組水平置中,還是同一行）。改成自己塞一個
+			## VBoxContainer（頭貼 TextureRect + 名稱 Label）當視覺內容,Button
+			## 本身的 text/icon 留空、純粹當可點擊容器＋背景色用,固定命名
+			## "Content/Avatar"、"Content/NameLabel" 方便 _refresh_cells() 找到。
+			var content := VBoxContainer.new()
+			content.name = "Content"
+			content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			content.alignment = BoxContainer.ALIGNMENT_CENTER
+			content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			content.clip_contents = true
+			content.add_theme_constant_override("separation", 6)
+			cell.add_child(content)
+
+			var avatar := TextureRect.new()
+			avatar.name = "Avatar"
+			## 2026-09-24 修正：TextureRect 預設 expand_mode 是 EXPAND_KEEP_SIZE
+			## ——不管 custom_minimum_size 設多少,畫的時候一律用貼圖原始尺寸
+			## （這裡的頭貼素材是 256x256），撐爆整個格子、溢出到下一列。改成
+			## EXPAND_IGNORE_SIZE 讓它改用 Control 自己的 size（受
+			## custom_minimum_size 限制）,再搭 STRETCH_KEEP_ASPECT_CENTERED
+			## 縮放置中。
+			avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			avatar.custom_minimum_size = Vector2(64, 64)
+			avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			avatar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			avatar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			avatar.visible = false
+			content.add_child(avatar)
+
+			var name_label := Label.new()
+			name_label.name = "NameLabel"
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			name_label.add_theme_font_size_override("font_size", 22)
+			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			content.add_child(name_label)
+
 			grid.add_child(cell)
 			cells.append(cell)
 	return cells
@@ -209,34 +236,44 @@ func _refresh_grid() -> void:
 	_refresh_start_button()
 
 ## 2026-09-24 使用者需求：格子裡除了文字，多人連線的真人格子要多畫頭貼
-## （見 PlayerProfile.gd/NetworkManager._peer_profiles 的說明）——單機模式
-## 的「你」跟 AI 沒有頭貼概念，維持原本純文字。
+## （見 PlayerProfile.gd/NetworkManager._peer_profiles 的說明，頭貼在上、
+## 名稱在下，見 _build_grid() 的 Content/Avatar/NameLabel 結構）——AI 沒有
+## 頭貼概念，維持純文字（Avatar 保持隱藏）。
 func _refresh_cells(cells: Array) -> void:
 	for i in range(cells.size()):
 		var team_index := i % BattleSettings.TEAM_COUNT
 		var slot_index := i / BattleSettings.TEAM_COUNT
 		var cell: Button = cells[i]
+		var avatar: TextureRect = cell.get_node("Content/Avatar")
+		var name_label: Label = cell.get_node("Content/NameLabel")
 		var occupant := BattleSettings.get_occupant(team_index, slot_index)
-		cell.icon = null
+		avatar.visible = false
+		avatar.texture = null
 		if occupant == 0:
-			cell.text = ""
+			name_label.text = ""
+			cell.display_name = ""
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 0.7)
 		elif occupant == _local_peer_id:
 			## 2026-09-24 使用者需求：自己那格也直接顯示頭貼+名稱，不管單人還是
 			## 多人模式，不再用「你」這個通用字（PlayerProfile 是純本機資料，
 			## 單機模式一樣讀得到，不需要另外判斷 is_solo_mode）。
-			cell.text = PlayerProfile.player_name
-			cell.icon = PlayerProfile.get_avatar_texture()
+			name_label.text = PlayerProfile.player_name
+			avatar.texture = PlayerProfile.get_avatar_texture()
+			avatar.visible = true
+			cell.display_name = PlayerProfile.player_name
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
 		elif BattleSettings.is_ai(occupant):
-			cell.text = BattleSettings.AI_LABELS.get(occupant, "AI")
+			name_label.text = BattleSettings.AI_LABELS.get(occupant, "AI")
+			cell.display_name = name_label.text
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
 		else:
-			cell.text = NetworkManager.get_peer_profile_name(occupant)
-			cell.icon = PlayerProfile.get_avatar_texture_for(NetworkManager.get_peer_profile_avatar_id(occupant))
+			name_label.text = NetworkManager.get_peer_profile_name(occupant)
+			avatar.texture = PlayerProfile.get_avatar_texture_for(NetworkManager.get_peer_profile_avatar_id(occupant))
+			avatar.visible = true
+			cell.display_name = name_label.text
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
 
