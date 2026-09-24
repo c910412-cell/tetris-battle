@@ -197,24 +197,27 @@ var _opponent_panels: Dictionary = {}
 var _countdown_remaining: float = COUNTDOWN_SECONDS
 var _match_started: bool = false
 
-## 2026-09-24 新增、後續使用者回報再調整：白色波浪特效——由下往上一行一行
-## 填白，填滿整個盤面後再由上往下一行一行清空。純視覺,不影響任何遊戲邏輯
-## 判定。兩個獨立觸發點共用同一套機制（見 _start_board_flash() 的說明）：
-## (1) GAME_OVER——本地玩家自己的盤面疊到頂；(2) ROUND_START——新一輪開始、
-## 按下「下一輪開始」到真正倒數之間，當作清空畫面的轉場。
-enum BoardFlashPurpose { NONE, GAME_OVER, ROUND_START }
+## 2026-09-24 新增、後續使用者回報幾輪調整：白色波浪特效——由下往上一行
+## 一行填白，填滿整個盤面後再由上往下一行一行清空。純視覺,不影響任何遊戲
+## 邏輯判定。最後定案：只在「新一輪開場、清掉上一輪殘留盤面」這個時機點用
+## （原本還有「本地玩家自己疊頂淘汰」那個觸發點，使用者回報不需要，已拿
+## 掉）——見 _start_round()/_advance_round_transition_flash() 的說明。第一輪
+## （_is_first_round）沒有舊盤面可以清，不播這個特效。
+var _is_first_round: bool = true
 ## 使用者回報原本 0.025 太快，幾乎看不出一行一行的感覺——調到 0.05,搭配
-## draw_cell()（見 _draw_board_flash()）保留格線,才看得出真的是「一格一格」
-## 填滿,不是一整塊純色。
+## draw_cell()（見 _draw_round_transition_flash()）保留格線,才看得出真的是
+## 「一格一格」填滿,不是一整塊純色。
 const BOARD_FLASH_ROW_SEC := 0.05
-var _board_flash_purpose: int = BoardFlashPurpose.NONE
-var _board_flash_timer: float = 0.0
-## 1＝由下往上填白（尚未點亮的行數上限，從 VISIBLE_HEIGHT 開始遞減到 0）；
-## 2＝由上往下清空（已清空的行數,從 0 開始遞增到 VISIBLE_HEIGHT）。兩個
-## 階段都用同一個意義：目前「白色」的行是 [_board_flash_row,
+var _round_transition_flash_active: bool = false
+var _round_transition_flash_timer: float = 0.0
+## 1＝由下往上填白（尚未點亮的行數上限，從 VISIBLE_HEIGHT 開始遞減到 0，
+## 減到 0 的那一刻——整個盤面剛好全白蓋住——是真正把舊盤面資料換成新一輪
+## 的時機點，見 _advance_round_transition_flash() 呼叫 _build_new_round()
+## 的說明);2＝由上往下清空（已清空的行數,從 0 開始遞增到 VISIBLE_HEIGHT）。
+## 兩個階段都用同一個意義：目前「白色」的行是 [_round_transition_flash_row,
 ## VISIBLE_HEIGHT-1]（含）這個連續區間。
-var _board_flash_phase: int = 0
-var _board_flash_row: int = 0
+var _round_transition_flash_phase: int = 0
+var _round_transition_flash_row: int = 0
 
 ## bo-N 戰績：team_index -> 已經贏的回合數，整場比賽期間持續累加（跨回合
 ## 不歸零，只有整場比賽結束、返回大廳才會消失）。
@@ -287,7 +290,33 @@ func _is_host_authority() -> bool:
 
 ## 開始新的一輪：整場比賽期間會呼叫好幾次（bo-N 每輪都是全新盤面），
 ## _team_round_wins 不會在這裡重置。
+## 2026-09-24 使用者需求再調整：第一輪沒有舊盤面可以清，直接建立＋正常
+## 倒數，不播特效；第二輪開始（bo-N「下一輪」或多人的下一輪確認）才播放
+## 清空轉場——而且要先播特效、播到「整個盤面全白蓋住」的那一刻才真的把
+## 舊盤面換成新一輪的（見 _advance_round_transition_flash()），不是像原本
+## 那樣一開始就建立新一輪、把舊盤面直接砍掉,特效才播在已經清空的空盤面上。
 func _start_round() -> void:
+	if _is_first_round:
+		_is_first_round = false
+		_build_new_round()
+		_begin_countdown()
+		return
+
+	result_layer.visible = false
+	_is_paused = false
+	_is_resume_counting_down = false
+	pause_layer.visible = false
+	pause_vote_dots_label_portrait.visible = false
+	pause_vote_dots_label_landscape.visible = false
+	_leave_votes.clear()
+	_match_started = false
+	_set_countdown_visible(false)
+	_start_round_transition_flash()
+
+## 特效播到全白蓋住畫面的那一刻呼叫（見 _advance_round_transition_flash()）
+## ——這裡才是原本 _start_round() 建立新一輪盤面/重新連訊號的地方,只是
+## 現在延後到特效蓋住畫面之後才做,玩家不會看到「舊盤面瞬間消失」。
+func _build_new_round() -> void:
 	_director = BattleDirector.new(BattleSettings.network_match_seed, _local_peer_id, _is_host_authority())
 	_local_participant = _director.participants.get(_local_peer_id)
 	_director.round_ended.connect(_on_round_ended)
@@ -303,7 +332,6 @@ func _start_round() -> void:
 		_local_participant.controller.score_changed.connect(_on_score_changed)
 		_local_participant.controller.lines_cleared.connect(_on_lines_cleared)
 		_local_participant.controller.level_changed.connect(_on_level_changed)
-		_local_participant.controller.game_over.connect(_on_local_game_over)
 
 	eliminated_label_portrait.visible = false
 	eliminated_label_landscape.visible = false
@@ -311,7 +339,6 @@ func _start_round() -> void:
 	_rebuild_opponent_panels()
 	_apply_orientation_layout()
 
-	result_layer.visible = false
 	## 2026-09-22：星星常態顯示在版面上（不再只有結算畫面才出現）——這裡先用
 	## 「這一輪開始前」的戰績填一次，讓玩家整局遊玩期間都看得到目前戰況；
 	## _on_round_ended() 那邊算完這輪結果後會再刷新一次文字。
@@ -319,22 +346,15 @@ func _start_round() -> void:
 	_move_dir = 0
 	_das_timer = 0.0
 	_arr_timer = 0.0
-	## 2026-09-24 使用者需求：新一輪開始時（按下「下一輪開始」到真正倒數
-	## 之間）先播一次白色波浪特效當轉場、順便清空畫面殘留——_countdown_
-	## remaining 先在這裡準備好,但倒數文字維持隱藏,真正開始遞減要等特效播完
-	## （見 _process()/_advance_board_flash() 的說明），不然特效播的時候背景
-	## 還會同時看到倒數數字在跳，很奇怪。
+
+## 特效完全播完（已經退到不剩半點白色）才呼叫，或第一輪沒有特效直接呼叫
+## ——這裡才真的開始倒數,落點/目前方塊也是這個時間點才會開始畫（見 _draw()
+## 的 _round_transition_flash_active 判斷)，等於「倒數出現、落點顯示一起
+## 出現」。
+func _begin_countdown() -> void:
 	_countdown_remaining = COUNTDOWN_SECONDS
 	_match_started = false
-	_set_countdown_visible(false)
-	_start_board_flash(BoardFlashPurpose.ROUND_START)
-
-	_is_paused = false
-	_is_resume_counting_down = false
-	pause_layer.visible = false
-	pause_vote_dots_label_portrait.visible = false
-	pause_vote_dots_label_landscape.visible = false
-	_leave_votes.clear()
+	_set_countdown_visible(true)
 
 ## 旋轉裝置、直向橫向比例翻轉時，切換顯示哪一組 PortraitLayout/
 ## LandscapeLayout——棋盤/HOLD/NEXT/結算條/點點欄/觸控按鈕的位置全部是那個
@@ -453,17 +473,14 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("tetris_pause"):
 		_on_pause_pressed()
 
-	## 2026-09-24：兩種特效共用同一套推進邏輯（見 _advance_board_flash()），
-	## 但要不要擋住底下的倒數/操作邏輯不一樣——GAME_OVER 只是本地玩家自己
-	## 的盤面在播特效，隊友/對手照常繼續玩，不能連 _director.tick() 都一起
-	## 停掉；ROUND_START 是整個新一輪還沒真的開始（倒數都還沒開始跳），這段
-	## 期間本來就什麼都不該跑，播完才進入正常的倒數流程。
-	if _board_flash_purpose != BoardFlashPurpose.NONE:
-		var flash_purpose_before := _board_flash_purpose
-		_advance_board_flash(delta)
+	## 2026-09-24：新一輪清空轉場特效播放期間，整個新一輪都還沒真的開始
+	## （連 _director 都還沒建立、倒數都還沒開始跳），這段期間本來就什麼都
+	## 不該跑，播完才進入正常的倒數流程（見 _advance_round_transition_
+	## flash()）。
+	if _round_transition_flash_active:
+		_advance_round_transition_flash(delta)
 		queue_redraw()
-		if flash_purpose_before == BoardFlashPurpose.ROUND_START:
-			return
+		return
 
 	if not _match_started:
 		_countdown_remaining -= delta
@@ -774,37 +791,32 @@ func _local_team_has_survivor() -> bool:
 			return true
 	return false
 
-## 2026-09-24 使用者需求：兩個獨立觸發點共用的白色波浪特效統一入口——
-## GAME_OVER（本地玩家自己盤面疊頂）由 TetrisGameController.game_over
-## 觸發；ROUND_START（新一輪開場轉場,見 _start_round()）由那邊直接呼叫。
-func _start_board_flash(purpose: int) -> void:
-	_board_flash_purpose = purpose
-	_board_flash_timer = 0.0
-	_board_flash_phase = 1
-	_board_flash_row = TetrisBoard.VISIBLE_HEIGHT
+func _start_round_transition_flash() -> void:
+	_round_transition_flash_active = true
+	_round_transition_flash_timer = 0.0
+	_round_transition_flash_phase = 1
+	_round_transition_flash_row = TetrisBoard.VISIBLE_HEIGHT
 
-func _on_local_game_over() -> void:
-	_start_board_flash(BoardFlashPurpose.GAME_OVER)
-
-## 見 BOARD_FLASH_ROW_SEC 的說明。特效播完是 ROUND_START 用途時,順便把
-## 倒數文字顯示出來、正式開始倒數（_countdown_remaining 已經在
-## _start_round() 準備好,這段期間沒有被消耗,見 _process() 的說明）。
-func _advance_board_flash(delta: float) -> void:
-	_board_flash_timer += delta
-	while _board_flash_purpose != BoardFlashPurpose.NONE and _board_flash_timer >= BOARD_FLASH_ROW_SEC:
-		_board_flash_timer -= BOARD_FLASH_ROW_SEC
-		if _board_flash_phase == 1:
-			_board_flash_row -= 1
-			if _board_flash_row <= 0:
-				_board_flash_row = 0
-				_board_flash_phase = 2
+## 見 BOARD_FLASH_ROW_SEC 的說明。填到滿（phase 1 結束）的那一刻呼叫
+## _build_new_round()——這是舊盤面真正被換成新一輪的時間點，畫面上這時候
+## 剛好整片全白蓋住，玩家看不到「盤面瞬間清空」的痕跡。清到底（phase 2
+## 結束、整片白色都退完）才呼叫 _begin_countdown()，倒數文字跟目前方塊/
+## 落點顯示（見 _draw() 的判斷）都在這個時間點才一起出現。
+func _advance_round_transition_flash(delta: float) -> void:
+	_round_transition_flash_timer += delta
+	while _round_transition_flash_active and _round_transition_flash_timer >= BOARD_FLASH_ROW_SEC:
+		_round_transition_flash_timer -= BOARD_FLASH_ROW_SEC
+		if _round_transition_flash_phase == 1:
+			_round_transition_flash_row -= 1
+			if _round_transition_flash_row <= 0:
+				_round_transition_flash_row = 0
+				_round_transition_flash_phase = 2
+				_build_new_round()
 		else:
-			_board_flash_row += 1
-			if _board_flash_row >= TetrisBoard.VISIBLE_HEIGHT:
-				var finished_purpose := _board_flash_purpose
-				_board_flash_purpose = BoardFlashPurpose.NONE
-				if finished_purpose == BoardFlashPurpose.ROUND_START:
-					_set_countdown_visible(true)
+			_round_transition_flash_row += 1
+			if _round_transition_flash_row >= TetrisBoard.VISIBLE_HEIGHT:
+				_round_transition_flash_active = false
+				_begin_countdown()
 
 ## bo-N 判定：贏這輪的隊伍戰績+1，達到 BattleSettings.rounds_to_win 就是整場
 ## 比賽結束；沒達到就顯示這輪結果，按鈕變成「下一輪」。
@@ -1013,9 +1025,11 @@ func _draw() -> void:
 
 	TetrisBoardRenderer.draw_board_frame(self, _board_origin, _cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, controller.board, _board_origin, _cell_size, controller.get_clearing_rows())
-	if _board_flash_purpose != BoardFlashPurpose.NONE:
-		_draw_board_flash()
-	if not controller.is_game_over and not controller.is_clearing():
+	if _round_transition_flash_active:
+		_draw_round_transition_flash()
+	## 2026-09-24 使用者需求：目前方塊/落點要等特效播完才出現，跟倒數文字
+	## 一起出現（見 _begin_countdown() 的說明），特效播放期間先不畫。
+	if not _round_transition_flash_active and not controller.is_game_over and not controller.is_clearing():
 		TetrisBoardRenderer.draw_ghost(self, controller, _board_origin, _cell_size)
 		TetrisBoardRenderer.draw_active_piece(self, controller, _board_origin, _cell_size)
 
@@ -1065,13 +1079,14 @@ func _draw_settlement_bar() -> void:
 	draw_rect(Rect2(bar_rect.position, Vector2(bar_rect.size.x * progress, bar_rect.size.y)), Color(0.9, 0.6, 0.2), true)
 
 ## 見 BOARD_FLASH_ROW_SEC 的說明——目前「白色」的行永遠是
-## [_board_flash_row, VISIBLE_HEIGHT-1] 這個連續區間。2026-09-24 使用者
-## 回報原本畫一整塊純色矩形看不出格子——改成跟鎖定方塊同一個
-## TetrisBoardRenderer.draw_cell()（每格內縮 1px），格與格之間會露出底色
-## 當格線，看起來才像「一格一格」疊起來，不是一片死白。
-func _draw_board_flash() -> void:
-	if _board_flash_row >= TetrisBoard.VISIBLE_HEIGHT:
+## [_round_transition_flash_row, VISIBLE_HEIGHT-1] 這個連續區間。畫在剛畫好
+## 的（舊一輪，直到 phase 1 結束前都還是舊資料，見
+## _advance_round_transition_flash() 的說明）鎖定格子上面——用跟鎖定方塊
+## 同一個 TetrisBoardRenderer.draw_cell()（每格內縮 1px），格與格之間會
+## 露出底色當格線，看起來才像「一格一格」疊起來，不是一片死白。
+func _draw_round_transition_flash() -> void:
+	if _round_transition_flash_row >= TetrisBoard.VISIBLE_HEIGHT:
 		return
-	for row in range(_board_flash_row, TetrisBoard.VISIBLE_HEIGHT):
+	for row in range(_round_transition_flash_row, TetrisBoard.VISIBLE_HEIGHT):
 		for col in range(TetrisBoard.WIDTH):
 			TetrisBoardRenderer.draw_cell(self, _board_origin, _cell_size, col, row, Color(1, 1, 1, 1))
