@@ -215,11 +215,13 @@ func _refresh_cells(cells: Array) -> void:
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 0.7)
 		elif occupant == _local_peer_id:
-			cell.text = "你"
+			## 2026-09-24 使用者需求：自己那格也直接顯示頭貼+名稱，不管單人還是
+			## 多人模式，不再用「你」這個通用字（PlayerProfile 是純本機資料，
+			## 單機模式一樣讀得到，不需要另外判斷 is_solo_mode）。
+			cell.text = PlayerProfile.player_name
+			cell.icon = PlayerProfile.get_avatar_texture()
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
-			if not BattleSettings.is_solo_mode:
-				cell.icon = PlayerProfile.get_avatar_texture()
 		elif BattleSettings.is_ai(occupant):
 			cell.text = BattleSettings.AI_LABELS.get(occupant, "AI")
 			cell.disabled = false

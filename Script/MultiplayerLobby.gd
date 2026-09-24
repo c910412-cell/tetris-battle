@@ -111,16 +111,17 @@ func _exit_tree() -> void:
 	MobileLineEditHelper.restore_touch_emulation()
 
 
-## 【2026-09-20】直接開房，用系統裝置 ID 前幾碼當預設房名——真正的房名/
-## 密碼/人數上限/地圖交給 RoomLobby.tscn 編輯（見該檔案 _ready() 的說明：
-## 進去之後會立刻補送一次完整設定），這裡先給一個堪用的預設值，不強迫
-## 玩家在這個畫面就要先想好名字才能開房。
+## 【2026-09-20】直接開房——真正的房名/密碼/人數上限/地圖交給
+## RoomLobby.tscn 編輯（見該檔案 _ready() 的說明：進去之後會立刻補送一次
+## 完整設定），這裡先給一個堪用的預設值，不強迫玩家在這個畫面就要先想好
+## 名字才能開房。2026-09-24 修正：原本用 OS.get_unique_id() 裝置 ID 前幾碼
+## 當預設房名（一串跟玩家毫無關係的英數亂碼，使用者回報看不懂)，現在有
+## PlayerProfile.player_name 可以用了，改用「XX 的房間」。
 func _on_host_pressed() -> void:
 	_set_room_list_visible(false)
 	_set_search_edit_visible(false)
 	_set_host_join_disabled(true)
-	var unique_suffix := OS.get_unique_id().substr(0, 6) if OS.get_unique_id() != "" else "房間"
-	if NetworkManager.host_game("%s 的房間" % unique_suffix):
+	if NetworkManager.host_game("%s 的房間" % PlayerProfile.player_name):
 		_set_status_text("")
 		_open_room_lobby()
 	else:
