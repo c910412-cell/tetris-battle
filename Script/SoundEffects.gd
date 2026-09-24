@@ -48,10 +48,16 @@ func play_button() -> void:
 	_play(BUTTON_SOUND)
 
 ## 選單類按鈕的呼叫端只要在 _ready() 把自己的 Button/TextureButton 丟進來
-## 呼叫一次就好，不用各自接 pressed 訊號、各自判斷音效開關——音量/開關以後
-## 統一從這裡管。
+## 呼叫一次就好，不用各自接訊號、各自判斷音效開關——音量/開關以後統一從
+## 這裡管。2026-09-24 使用者回報音效感覺延遲——根因是 BaseButton 的
+## `pressed` 訊號預設在「放開」的那一刻才觸發（action_mode 預設是
+## ACTION_MODE_BUTTON_RELEASE，這是 Godot 的標準行為，讓使用者按錯可以
+## 滑開取消，不算 bug，但拿來當音效回饋觸發點確實會感覺慢半拍）,改成接
+## `button_down`（一按下去、還沒放開就觸發,不受 action_mode 影響)——只換
+## 音效的觸發點,呼叫端自己另外接的 `pressed`（真正的按鈕動作，例如切換
+## 畫面）完全不受影響,還是放開才生效,不會變成「按下去就誤觸發換畫面」。
 func connect_button(button: BaseButton) -> void:
-	button.pressed.connect(play_button)
+	button.button_down.connect(play_button)
 
 func _play(stream: AudioStream) -> void:
 	if not PlayerSettings.sound_effects_enabled:
