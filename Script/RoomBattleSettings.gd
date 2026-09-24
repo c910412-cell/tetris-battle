@@ -115,6 +115,19 @@ func _ready() -> void:
 	_populate_rule_controls_from_settings()
 	BattleSettings.settings_changed.connect(_on_room_rules_changed)
 
+	# 2026-09-24：對戰規則這批開關/下拉選單（CheckButton/OptionButton 都是
+	# BaseButton）比照 Settings.gd 同一套做法，按下去就有聲音——跟下面各自
+	# 接的 toggled/item_selected（真正套用設定值）分開,不互相影響。
+	for control in [assist_ghost_toggle_portrait, assist_ghost_toggle_landscape,
+			time_acceleration_toggle_portrait, time_acceleration_toggle_landscape,
+			rounds_to_win_option_portrait, rounds_to_win_option_landscape,
+			damage_ratio_option_portrait, damage_ratio_option_landscape,
+			targeted_attack_toggle_portrait, targeted_attack_toggle_landscape,
+			garbage_cap_toggle_portrait, garbage_cap_toggle_landscape,
+			random_piece_toggle_portrait, random_piece_toggle_landscape,
+			ai_level_option_portrait, ai_level_option_landscape,
+			single_line_attack_toggle_portrait, single_line_attack_toggle_landscape]:
+		SoundEffects.connect_button(control)
 	assist_ghost_toggle_portrait.toggled.connect(_on_assist_ghost_toggled)
 	assist_ghost_toggle_landscape.toggled.connect(_on_assist_ghost_toggled)
 	time_acceleration_toggle_portrait.toggled.connect(_on_time_acceleration_toggled)
@@ -186,6 +199,10 @@ func _setup_room_info() -> void:
 	room_name_edit_landscape.text_changed.connect(_on_room_name_changed)
 	password_edit_portrait.text_changed.connect(_on_password_field_changed)
 	password_edit_landscape.text_changed.connect(_on_password_field_changed)
+	SoundEffects.connect_button(map_option_portrait)
+	SoundEffects.connect_button(map_option_landscape)
+	SoundEffects.connect_button(max_players_option_portrait)
+	SoundEffects.connect_button(max_players_option_landscape)
 	map_option_portrait.item_selected.connect(_on_map_option_changed)
 	map_option_landscape.item_selected.connect(_on_map_option_changed)
 	max_players_option_portrait.item_selected.connect(_on_max_players_option_changed)

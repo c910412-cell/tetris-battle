@@ -34,6 +34,13 @@ func _ready() -> void:
 	soft_drop_speed_spin_portrait.value = PlayerSettings.soft_drop_interval_sec
 	soft_drop_speed_spin_landscape.value = PlayerSettings.soft_drop_interval_sec
 
+	# 2026-09-24：這幾個開關本身是 CheckButton（繼承 BaseButton），跟選單按鈕
+	# 共用同一套 connect_button()（接的也是 button_down，按下就有聲音，不用
+	# 等切換完成），開關「這個設定值本身有沒有開」的邏輯不受影響。
+	for toggle in [vibration_toggle_portrait, vibration_toggle_landscape,
+			gesture_toggle_portrait, gesture_toggle_landscape,
+			sound_toggle_portrait, sound_toggle_landscape]:
+		SoundEffects.connect_button(toggle)
 	vibration_toggle_portrait.toggled.connect(_on_vibration_toggled)
 	vibration_toggle_landscape.toggled.connect(_on_vibration_toggled)
 	gesture_toggle_portrait.toggled.connect(_on_gesture_toggled)
