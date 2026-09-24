@@ -250,8 +250,12 @@ var _leave_votes: Dictionary = {}
 func _ready() -> void:
 	_local_peer_id = multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
 	_team_round_wins.clear()
+	SoundEffects.connect_button(return_button_portrait)
+	SoundEffects.connect_button(return_button_landscape)
 	return_button_portrait.pressed.connect(_on_result_button_pressed)
 	return_button_landscape.pressed.connect(_on_result_button_pressed)
+	SoundEffects.connect_button(next_round_ready_button_portrait)
+	SoundEffects.connect_button(next_round_ready_button_landscape)
 	next_round_ready_button_portrait.pressed.connect(_on_next_round_ready_pressed)
 	next_round_ready_button_landscape.pressed.connect(_on_next_round_ready_pressed)
 	get_viewport().size_changed.connect(_apply_orientation_layout)
@@ -263,11 +267,17 @@ func _ready() -> void:
 	_match_sync.continue_progress_updated.connect(_on_continue_progress_updated)
 
 	pause_layer.visible = false
+	SoundEffects.connect_button(pause_resume_button_portrait)
+	SoundEffects.connect_button(pause_resume_button_landscape)
 	pause_resume_button_portrait.pressed.connect(_on_pause_resume_pressed)
 	pause_resume_button_landscape.pressed.connect(_on_pause_resume_pressed)
+	SoundEffects.connect_button(pause_leave_button_portrait)
+	SoundEffects.connect_button(pause_leave_button_landscape)
 	pause_leave_button_portrait.pressed.connect(_on_pause_leave_pressed)
 	pause_leave_button_landscape.pressed.connect(_on_pause_leave_pressed)
 
+	SoundEffects.connect_button(battle_settings_button_portrait)
+	SoundEffects.connect_button(battle_settings_button_landscape)
 	battle_settings_button_portrait.pressed.connect(_on_battle_settings_pressed)
 	battle_settings_button_landscape.pressed.connect(_on_battle_settings_pressed)
 
@@ -332,6 +342,7 @@ func _build_new_round() -> void:
 		_local_participant.controller.score_changed.connect(_on_score_changed)
 		_local_participant.controller.lines_cleared.connect(_on_lines_cleared)
 		_local_participant.controller.level_changed.connect(_on_level_changed)
+		_local_participant.controller.piece_moved.connect(SoundEffects.play_move)
 
 	eliminated_label_portrait.visible = false
 	eliminated_label_landscape.visible = false
@@ -716,6 +727,7 @@ func _handle_input(delta: float) -> void:
 
 	if Input.is_action_just_pressed("tetris_hard_drop"):
 		controller.hard_drop()
+		SoundEffects.play_hard_drop()
 	if Input.is_action_just_pressed("tetris_rotate_cw"):
 		controller.rotate(true)
 	if Input.is_action_just_pressed("tetris_rotate_ccw"):
@@ -730,6 +742,7 @@ func _on_lines_cleared(count: int) -> void:
 	_set_lines_text("消行: %d" % _local_participant.controller.lines_cleared_total)
 	if count > 0:
 		PlayerSettings.vibrate(20 + count * 10)
+		SoundEffects.play_line_clear()
 
 func _on_level_changed(new_level: int) -> void:
 	_set_level_text("等級: %d" % new_level)

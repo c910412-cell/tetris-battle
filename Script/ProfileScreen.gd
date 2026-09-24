@@ -35,6 +35,8 @@ func _ready() -> void:
 	name_edit_landscape.text_submitted.connect(_on_name_submitted)
 	name_edit_portrait.focus_exited.connect(_on_name_focus_exited.bind(name_edit_portrait))
 	name_edit_landscape.focus_exited.connect(_on_name_focus_exited.bind(name_edit_landscape))
+	SoundEffects.connect_button(close_button_portrait)
+	SoundEffects.connect_button(close_button_landscape)
 	close_button_portrait.pressed.connect(_on_close_pressed)
 	close_button_landscape.pressed.connect(_on_close_pressed)
 
@@ -69,6 +71,7 @@ func _build_avatar_grid(grid: GridContainer) -> Array:
 		button.ignore_texture_size = true
 		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		button.custom_minimum_size = Vector2(140, 140)
+		SoundEffects.connect_button(button)
 		button.pressed.connect(_on_avatar_picked.bind(i))
 		grid.add_child(button)
 		buttons.append(button)

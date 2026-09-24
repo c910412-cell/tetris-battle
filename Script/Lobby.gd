@@ -53,6 +53,10 @@ var _profile_instance: Control = null
 
 
 func _ready() -> void:
+	for button in [solo_play_cell_portrait, solo_play_cell_landscape, online_battle_cell_portrait,
+			online_battle_cell_landscape, endless_cell_portrait, endless_cell_landscape,
+			settings_button_portrait, settings_button_landscape, avatar_button_portrait, avatar_button_landscape]:
+		SoundEffects.connect_button(button)
 	solo_play_cell_portrait.pressed.connect(_on_solo_play_pressed)
 	solo_play_cell_landscape.pressed.connect(_on_solo_play_pressed)
 	online_battle_cell_portrait.pressed.connect(_on_online_battle_pressed)

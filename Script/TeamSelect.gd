@@ -64,6 +64,9 @@ func _ready() -> void:
 	_cells_landscape = _build_grid(grid_landscape)
 	_apply_owner_mode_ui()
 	_refresh_grid()
+	for button in [start_button_portrait, start_button_landscape, ready_button_portrait,
+			ready_button_landscape, back_button_portrait, back_button_landscape]:
+		SoundEffects.connect_button(button)
 	start_button_portrait.pressed.connect(_on_start_pressed)
 	start_button_landscape.pressed.connect(_on_start_pressed)
 	ready_button_portrait.pressed.connect(_on_ready_pressed)
@@ -131,6 +134,7 @@ func _build_grid(grid: GridContainer) -> Array:
 			cell.add_theme_stylebox_override("hover", style)
 			cell.add_theme_stylebox_override("pressed", style)
 			cell.add_theme_stylebox_override("disabled", style)
+			SoundEffects.connect_button(cell)
 			cell.pressed.connect(_on_cell_pressed.bind(team_index, row))
 
 			## 2026-09-24 使用者需求：頭貼在上、名稱在下，不能疊在一起——Godot

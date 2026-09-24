@@ -22,6 +22,7 @@ PlayitClient="*res://Script/PlayitClient.gd"
 BattleSettings="*res://Script/BattleSettings.gd"
 PlayerSettings="*res://Script/PlayerSettings.gd"
 PlayerProfile="*res://Script/PlayerProfile.gd"
+SoundEffects="*res://Script/SoundEffects.gd"
 
 [display]
 

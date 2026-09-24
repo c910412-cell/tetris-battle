@@ -138,6 +138,9 @@ func _ready() -> void:
 	single_line_attack_toggle_portrait.toggled.connect(_on_single_line_attack_toggled)
 	single_line_attack_toggle_landscape.toggled.connect(_on_single_line_attack_toggled)
 
+	for button in [back_button_portrait, back_button_landscape, ready_button_portrait,
+			ready_button_landscape, next_button_portrait, next_button_landscape]:
+		SoundEffects.connect_button(button)
 	back_button_portrait.pressed.connect(_on_back_pressed)
 	back_button_landscape.pressed.connect(_on_back_pressed)
 	ready_button_portrait.pressed.connect(_on_ready_pressed)

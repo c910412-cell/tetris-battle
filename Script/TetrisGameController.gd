@@ -20,6 +20,12 @@ signal game_over
 ## 拿來當攻擊力，兩邊各自一張表分開調），gap_columns 是每一行「被這次鎖定
 ## 的方塊補上的那一欄」（見對戰規格：垃圾行缺口鏡射這個）。
 signal attack_ready(attack_power: int, gap_columns: Array)
+## 2026-09-24 新增：玩家主動造成的移動——左右移動成功、或按住「軟降」造成
+## 真的往下移動一格時發出（純被動的一般重力下墜、硬降不算,硬降有自己的
+## 音效,一般重力落下沒有操作感、不需要回饋音效）。給 SoundEffects.gd 接,
+## 只有本地玩家自己的 controller 需要接,AI/遠端玩家的鏡像 controller 不用
+## （呼叫端自己判斷,這裡只負責照實發訊號）。
+signal piece_moved
 
 const SPAWN_X := 3
 const SPAWN_Y := 0
@@ -217,6 +223,7 @@ func move(dx: int) -> bool:
 		_active_pos = new_pos
 		_last_action_was_rotation = false
 		_notify_piece_manipulated()
+		piece_moved.emit()
 		return true
 	return false
 
@@ -270,6 +277,7 @@ func _apply_gravity_step() -> void:
 		_lock_timer = 0.0
 		if _soft_drop_active:
 			_add_score(SOFT_DROP_POINTS_PER_CELL)
+			piece_moved.emit()
 	else:
 		_is_on_surface = true
 

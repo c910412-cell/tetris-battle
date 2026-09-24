@@ -54,6 +54,9 @@ var _password_prompt_edit: LineEdit = null
 
 
 func _ready() -> void:
+	for button in [host_button_portrait, host_button_landscape, join_button_portrait,
+			join_button_landscape, close_button_portrait, close_button_landscape]:
+		SoundEffects.connect_button(button)
 	host_button_portrait.pressed.connect(_on_host_pressed)
 	host_button_landscape.pressed.connect(_on_host_pressed)
 	join_button_portrait.pressed.connect(_on_join_pressed)
@@ -182,6 +185,7 @@ func _build_room_button(room: Dictionary) -> Button:
 	var status_text := "（已滿）" if is_full else "（%d/%d）" % [current_players, max_players]
 	btn.text = "%s%s %s" % [lock_icon, room["name"], status_text]
 	btn.disabled = is_full
+	SoundEffects.connect_button(btn)
 	btn.pressed.connect(_on_room_selected.bind(room))
 	return btn
 
@@ -252,12 +256,14 @@ func _show_password_prompt() -> void:
 	var cancel_btn := Button.new()
 	cancel_btn.text = "取消"
 	cancel_btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	SoundEffects.connect_button(cancel_btn)
 	cancel_btn.pressed.connect(_on_password_prompt_cancelled)
 	button_row.add_child(cancel_btn)
 
 	var confirm_btn := Button.new()
 	confirm_btn.text = "確認"
 	confirm_btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	SoundEffects.connect_button(confirm_btn)
 	confirm_btn.pressed.connect(_on_password_prompt_confirmed)
 	button_row.add_child(confirm_btn)
 

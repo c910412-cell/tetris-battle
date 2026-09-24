@@ -15,6 +15,9 @@ var vibration_enabled: bool = true
 ## 按鈕會消失，改成螢幕右半邊滑動偵測（左滑=左旋轉/右滑=右旋轉/下滑=直接
 ## 到底），見 TetrisGestureZone.gd。
 var gesture_controls_enabled: bool = false
+## 2026-09-24 新增：音效總開關（見 SoundEffects.gd）——跟震動回饋同一套
+## 「關掉就整個安靜跳過」模式。
+var sound_effects_enabled: bool = true
 
 ## 2026-09-24 新增：左右移動「按住不放」的連續移動節奏——按鈕
 ## （TetrisTouchButton.gd 觸發 tetris_move_left/right）跟手勢
@@ -43,6 +46,11 @@ func set_gesture_controls_enabled(enabled: bool) -> void:
 	_save()
 	settings_changed.emit()
 
+func set_sound_effects_enabled(enabled: bool) -> void:
+	sound_effects_enabled = enabled
+	_save()
+	settings_changed.emit()
+
 func set_move_repeat_sec(value: float) -> void:
 	move_repeat_sec = value
 	_save()
@@ -66,6 +74,7 @@ func _save() -> void:
 	var config := ConfigFile.new()
 	config.set_value("settings", "vibration_enabled", vibration_enabled)
 	config.set_value("settings", "gesture_controls_enabled", gesture_controls_enabled)
+	config.set_value("settings", "sound_effects_enabled", sound_effects_enabled)
 	config.set_value("settings", "move_repeat_sec", move_repeat_sec)
 	config.set_value("settings", "soft_drop_interval_sec", soft_drop_interval_sec)
 	config.save(SAVE_PATH)
@@ -76,5 +85,6 @@ func _load() -> void:
 		return
 	vibration_enabled = config.get_value("settings", "vibration_enabled", true)
 	gesture_controls_enabled = config.get_value("settings", "gesture_controls_enabled", false)
+	sound_effects_enabled = config.get_value("settings", "sound_effects_enabled", true)
 	move_repeat_sec = config.get_value("settings", "move_repeat_sec", 0.03)
 	soft_drop_interval_sec = config.get_value("settings", "soft_drop_interval_sec", 0.08)

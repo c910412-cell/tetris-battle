@@ -131,6 +131,7 @@ func _ready() -> void:
 	_controller.lines_cleared.connect(_on_lines_cleared)
 	_controller.level_changed.connect(_on_level_changed)
 	_controller.game_over.connect(_on_game_over)
+	_controller.piece_moved.connect(SoundEffects.play_move)
 
 	_high_score = _load_high_score()
 	_set_score_text("分數: 0")
@@ -138,15 +139,23 @@ func _ready() -> void:
 	_set_level_text("等級: 1")
 	_set_high_score_text("最高紀錄: %d" % _high_score)
 	game_over_layer.visible = false
+	SoundEffects.connect_button(return_button_portrait)
+	SoundEffects.connect_button(return_button_landscape)
 	return_button_portrait.pressed.connect(_on_return_pressed)
 	return_button_landscape.pressed.connect(_on_return_pressed)
 
 	pause_layer.visible = false
+	SoundEffects.connect_button(pause_resume_button_portrait)
+	SoundEffects.connect_button(pause_resume_button_landscape)
 	pause_resume_button_portrait.pressed.connect(_on_pause_resume_pressed)
 	pause_resume_button_landscape.pressed.connect(_on_pause_resume_pressed)
+	SoundEffects.connect_button(pause_leave_button_portrait)
+	SoundEffects.connect_button(pause_leave_button_landscape)
 	pause_leave_button_portrait.pressed.connect(_on_return_pressed)
 	pause_leave_button_landscape.pressed.connect(_on_return_pressed)
 
+	SoundEffects.connect_button(board_settings_button_portrait)
+	SoundEffects.connect_button(board_settings_button_landscape)
 	board_settings_button_portrait.pressed.connect(_on_board_settings_pressed)
 	board_settings_button_landscape.pressed.connect(_on_board_settings_pressed)
 
@@ -259,6 +268,7 @@ func _handle_input(delta: float) -> void:
 
 	if Input.is_action_just_pressed("tetris_hard_drop"):
 		_controller.hard_drop()
+		SoundEffects.play_hard_drop()
 	if Input.is_action_just_pressed("tetris_rotate_cw"):
 		_controller.rotate(true)
 	if Input.is_action_just_pressed("tetris_rotate_ccw"):
@@ -278,6 +288,7 @@ func _on_lines_cleared(count: int) -> void:
 	_set_lines_text("消行: %d" % _controller.lines_cleared_total)
 	if count > 0:
 		PlayerSettings.vibrate(30 + count * 20)
+		SoundEffects.play_line_clear()
 
 func _on_level_changed(new_level: int) -> void:
 	_set_level_text("等級: %d" % new_level)

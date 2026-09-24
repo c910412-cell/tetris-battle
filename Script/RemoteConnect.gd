@@ -75,6 +75,10 @@ var _dedicated_hosting_active: bool = false
 
 
 func _ready() -> void:
+	for button in [back_button, become_server_button, connect_server_button, join_remote_button,
+			help_button, login_button, logout_button, start_server_button, host_myself_button,
+			connect_confirm_button, join_confirm_button]:
+		SoundEffects.connect_button(button)
 	back_button.pressed.connect(_on_back_pressed)
 	become_server_button.pressed.connect(_on_become_server_mode_pressed)
 	connect_server_button.pressed.connect(_on_connect_server_mode_pressed)
@@ -256,6 +260,7 @@ func _on_help_pressed() -> void:
 
 	var close_button := Button.new()
 	close_button.text = "關閉"
+	SoundEffects.connect_button(close_button)
 	close_button.pressed.connect(func() -> void: overlay.queue_free())
 	outer_layout.add_child(close_button)
 
