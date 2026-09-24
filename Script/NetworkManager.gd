@@ -125,6 +125,13 @@ var _match_started: bool = false
 ## 送出密碼驗證通過後才會被加進來（見 _submit_room_password()），不算房主
 ## 自己（房主不需要「準備」，見 start_match() 的開始條件判斷）。
 var _peer_ready: Dictionary = {}
+## 2026-09-24 新增：key＝peer_id（含房主的 HOST_PEER_ID），value＝
+## {"name": String, "avatar_id": int}——PlayerProfile.gd 的名稱/頭貼是純
+## 本機資料，原本完全不會被其他人看到（房間玩家列表/分隊格子/對戰對手
+## 面板全部只能顯示 peer_id 這種對玩家而言毫無意義的數字）。跟
+## _peer_ready 同一套「client 送、host 收、host 廣播」流程，搭
+## _sync_room_state() 一起送出去，不需要另外開一條 RPC 通道。
+var _peer_profiles: Dictionary = {}
 ## client 端：join_game() 呼叫時先記下密碼，等真的連上（connected_to_server）
 ## 才送出——ENet 的連線建立本身沒有內建「附帶資料」的管道，密碼驗證要在
 ## 連上之後另外用一個 RPC 補送，見 _on_connected_to_server() 的說明。
@@ -192,6 +199,8 @@ func host_game(new_room_name: String, max_players: int = 2, password: String = "
 	room_owner_peer_id = HOST_PEER_ID if owner_code == "" else -1
 	is_hosting = true
 	_peer_ready.clear()
+	_peer_profiles.clear()
+	_peer_profiles[HOST_PEER_ID] = {"name": PlayerProfile.player_name, "avatar_id": PlayerProfile.avatar_id}
 	_start_broadcasting()
 	return true
 
@@ -260,10 +269,25 @@ func get_ready_states() -> Dictionary:
 	return _peer_ready.duplicate()
 
 
+## 給 RoomBattleSettings.gd/TeamSelect.gd/OpponentPanel.gd 呼叫,把 peer_id
+## 換成玩家自己取的名字——查不到（理論上不會發生,除非還沒收到第一次
+## _sync_room_state 廣播）就退回「玩家」這個通用字。
+func get_peer_profile_name(peer_id: int) -> String:
+	if _peer_profiles.has(peer_id):
+		return _peer_profiles[peer_id].get("name", "玩家")
+	return "玩家"
+
+
+func get_peer_profile_avatar_id(peer_id: int) -> int:
+	if _peer_profiles.has(peer_id):
+		return int(_peer_profiles[peer_id].get("avatar_id", 0))
+	return 0
+
+
 func _broadcast_room_state() -> void:
 	if multiplayer.get_unique_id() != HOST_PEER_ID:
 		return
-	_sync_room_state.rpc(room_name, room_max_players, room_has_password, room_map_id, _peer_ready.duplicate(), room_owner_peer_id)
+	_sync_room_state.rpc(room_name, room_max_players, room_has_password, room_map_id, _peer_ready.duplicate(), room_owner_peer_id, _peer_profiles.duplicate())
 
 
 ## call_local——房主自己也走這條路徑更新，不用另外維護一份「房主本機直接
@@ -271,15 +295,16 @@ func _broadcast_room_state() -> void:
 ## room_state_updated 訊號、讀同一組欄位，畫面邏輯完全共用。不廣播真正的
 ## 密碼字串，client 只拿得到 has_password 這個布林值。owner_peer_id：每個
 ## 收到端都要知道目前誰是房主，RoomLobby.gd 才能正確判斷自己是不是該顯示
-## 可編輯設定的房主畫面。
+## 可編輯設定的房主畫面。peer_profiles：2026-09-24 新增,見該欄位的說明。
 @rpc("authority", "call_local", "reliable")
-func _sync_room_state(sync_room_name: String, sync_max_players: int, has_password: bool, sync_map_id: String, ready_states: Dictionary, owner_peer_id: int) -> void:
+func _sync_room_state(sync_room_name: String, sync_max_players: int, has_password: bool, sync_map_id: String, ready_states: Dictionary, owner_peer_id: int, peer_profiles: Dictionary) -> void:
 	room_name = sync_room_name
 	room_max_players = sync_max_players
 	room_has_password = has_password
 	room_map_id = sync_map_id
 	_peer_ready = ready_states
 	room_owner_peer_id = owner_peer_id
+	_peer_profiles = peer_profiles
 	room_state_updated.emit()
 
 
@@ -471,6 +496,7 @@ func cancel() -> void:
 	is_hosting = false
 	_match_started = false
 	_peer_ready.clear()
+	_peer_profiles.clear()
 	_pending_join_password = ""
 	_password_submitted = false
 	_pending_owner_code = ""
@@ -517,6 +543,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	var room_state_changed := false
 	if _peer_ready.has(peer_id):
 		_peer_ready.erase(peer_id)
+		_peer_profiles.erase(peer_id)
 		room_state_changed = true
 	if peer_id == room_owner_peer_id:
 		room_owner_peer_id = -1
@@ -553,16 +580,16 @@ func _on_connected_to_server() -> void:
 		if _owner_claim_submitted:
 			return
 		_owner_claim_submitted = true
-		_claim_room_owner_request.rpc_id(HOST_PEER_ID, _pending_owner_code)
+		_claim_room_owner_request.rpc_id(HOST_PEER_ID, _pending_owner_code, PlayerProfile.player_name, PlayerProfile.avatar_id)
 		return
 	if _password_submitted:
 		return
 	_password_submitted = true
-	_submit_room_password.rpc_id(HOST_PEER_ID, _pending_join_password)
+	_submit_room_password.rpc_id(HOST_PEER_ID, _pending_join_password, PlayerProfile.player_name, PlayerProfile.avatar_id)
 
 
 @rpc("any_peer", "reliable")
-func _submit_room_password(password: String) -> void:
+func _submit_room_password(password: String, player_name: String, avatar_id: int) -> void:
 	if multiplayer.get_unique_id() != HOST_PEER_ID:
 		return  # 防呆：只有房主才會真的受理密碼驗證
 	var sender_id := multiplayer.get_remote_sender_id()
@@ -580,6 +607,7 @@ func _submit_room_password(password: String) -> void:
 		_finish_reject_peer(sender_id)
 		return
 	_peer_ready[sender_id] = false
+	_peer_profiles[sender_id] = {"name": player_name, "avatar_id": avatar_id}
 	_broadcast_room_state()
 
 
@@ -598,7 +626,7 @@ func _current_player_count() -> int:
 ## 房主的既有邏輯一致）。同一時間只會有一個人認領成功——room_owner_peer_id
 ## != -1 代表已經有人認領了，之後不管誰再送同一組代碼過來都會被拒絕。
 @rpc("any_peer", "reliable")
-func _claim_room_owner_request(code: String) -> void:
+func _claim_room_owner_request(code: String, player_name: String, avatar_id: int) -> void:
 	if multiplayer.get_unique_id() != HOST_PEER_ID:
 		return  # 防呆：只有伺服器本人才會真的受理認領請求
 	var sender_id := multiplayer.get_remote_sender_id()
@@ -618,6 +646,7 @@ func _claim_room_owner_request(code: String) -> void:
 	# 讓房主會正確出現在 RoomLobby.gd 的玩家列表／_broadcast_announcement()
 	# 的人數統計裡。
 	_peer_ready[sender_id] = true
+	_peer_profiles[sender_id] = {"name": player_name, "avatar_id": avatar_id}
 	_broadcast_room_state()
 
 
@@ -883,6 +912,7 @@ func _do_end_match() -> void:
 	for peer_id in _peer_ready.keys():
 		if not live_peers.has(peer_id):
 			_peer_ready.erase(peer_id)
+			_peer_profiles.erase(peer_id)
 		else:
 			_peer_ready[peer_id] = false
 	_broadcast_room_state()

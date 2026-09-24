@@ -122,6 +122,10 @@ func _build_grid(grid: GridContainer) -> Array:
 			cell.custom_minimum_size = Vector2(0, 140)
 			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			cell.add_theme_font_size_override("font_size", 22)
+			## 2026-09-24 新增：真人格子要顯示頭貼（見 _refresh_cells()），讓圖示
+			## 依格子高度縮放，不要維持頭貼原始 256x256 撐爆整個格子。
+			cell.expand_icon = true
+			cell.add_theme_constant_override("icon_max_width", 100)
 			var style := StyleBoxFlat.new()
 			style.bg_color = BattleSettings.TEAM_COLORS[team_index]
 			style.corner_radius_top_left = 12
@@ -196,12 +200,16 @@ func _refresh_grid() -> void:
 	_refresh_cells(_cells_landscape)
 	_refresh_start_button()
 
+## 2026-09-24 使用者需求：格子裡除了文字，多人連線的真人格子要多畫頭貼
+## （見 PlayerProfile.gd/NetworkManager._peer_profiles 的說明）——單機模式
+## 的「你」跟 AI 沒有頭貼概念，維持原本純文字。
 func _refresh_cells(cells: Array) -> void:
 	for i in range(cells.size()):
 		var team_index := i % BattleSettings.TEAM_COUNT
 		var slot_index := i / BattleSettings.TEAM_COUNT
 		var cell: Button = cells[i]
 		var occupant := BattleSettings.get_occupant(team_index, slot_index)
+		cell.icon = null
 		if occupant == 0:
 			cell.text = ""
 			cell.disabled = false
@@ -210,12 +218,15 @@ func _refresh_cells(cells: Array) -> void:
 			cell.text = "你"
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
+			if not BattleSettings.is_solo_mode:
+				cell.icon = PlayerProfile.get_avatar_texture()
 		elif BattleSettings.is_ai(occupant):
 			cell.text = BattleSettings.AI_LABELS.get(occupant, "AI")
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
 		else:
-			cell.text = "P%d" % occupant
+			cell.text = NetworkManager.get_peer_profile_name(occupant)
+			cell.icon = PlayerProfile.get_avatar_texture_for(NetworkManager.get_peer_profile_avatar_id(occupant))
 			cell.disabled = false
 			cell.modulate = Color(1, 1, 1, 1)
 

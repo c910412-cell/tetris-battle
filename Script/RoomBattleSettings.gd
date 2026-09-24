@@ -448,13 +448,13 @@ func _refresh_player_list() -> void:
 		child.queue_free()
 	var owner_peer_id := NetworkManager.room_owner_peer_id
 	if owner_peer_id == NetworkManager.HOST_PEER_ID:
-		_add_player_row("房主", null)
+		_add_player_row(NetworkManager.get_peer_profile_name(owner_peer_id), null)
 	var ready_states := NetworkManager.get_ready_states()
 	for peer_id in ready_states:
 		if peer_id == owner_peer_id:
-			_add_player_row("房主", null)
+			_add_player_row(NetworkManager.get_peer_profile_name(peer_id), null)
 		else:
-			_add_player_row("玩家", ready_states[peer_id] as bool)
+			_add_player_row(NetworkManager.get_peer_profile_name(peer_id), ready_states[peer_id] as bool)
 
 func _add_player_row(label_text: String, is_ready) -> void:
 	player_list_content_portrait.add_child(_build_player_row(label_text, is_ready))

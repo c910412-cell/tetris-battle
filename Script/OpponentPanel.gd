@@ -72,7 +72,7 @@ func _draw() -> void:
 		draw_rect(Rect2(origin, board_size).grow(4.0), Color(1.0, 0.15, 0.15), false, 4.0)
 
 func _label_text() -> String:
-	var text: String = BattleSettings.AI_LABELS.get(pid, "AI") if BattleSettings.is_ai(pid) else "玩家 %d" % pid
+	var text: String = BattleSettings.AI_LABELS.get(pid, "AI") if BattleSettings.is_ai(pid) else NetworkManager.get_peer_profile_name(pid)
 	if participant.is_disconnected:
 		text += "（暫停中）"
 	elif participant.is_eliminated:
