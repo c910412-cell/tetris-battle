@@ -264,6 +264,10 @@ func _ready() -> void:
 	next_round_ready_button_portrait.pressed.connect(_on_next_round_ready_pressed)
 	next_round_ready_button_landscape.pressed.connect(_on_next_round_ready_pressed)
 	get_viewport().size_changed.connect(_apply_orientation_layout)
+	## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——整份版面平移，避開瀏海/
+	## 手勢列，先只套用在這個對戰畫面（使用者要求先做這裡）。
+	SafeArea.register_control(portrait_layout)
+	SafeArea.register_control(landscape_layout)
 
 	_match_sync = BattleMatchSync.new()
 	_match_sync.name = "BattleMatchSync"

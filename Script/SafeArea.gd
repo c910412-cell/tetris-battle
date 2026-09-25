@@ -1,8 +1,21 @@
 ## 安全區域偵測（autoload）——2026-09-25 新增。使用者想先看「手機瀏海/圓角/
 ## 手勢列吃掉多少像素、扣掉之後盤面比例還多出多少空間」，再決定怎麼運用多
-## 出來的長度（見跟使用者討論長螢幕留白的那一輪對話）——這次只做「偵測 +
-## 螢幕上顯示數字」，還沒有把邊距真的套到各畫面版面上把按鈕往內推，那是看完
-## 數字、決定好用法之後的下一步。
+## 出來的長度（見跟使用者討論長螢幕留白的那一輪對話）。
+##
+## 2026-09-25 補上真的套用邊距的部分（register_control()）：對戰畫面
+## （BattleLayoutPortrait/Landscape.tscn）整份版面是照 1080x1920／1920x1080
+## 這個固定基準尺寸、每個節點手排絕對像素位置排出來的，不是「照比例撐滿
+## 父層」那種可以直接改尺寸的排法——如果把整份版面拉伸/縮放去塞安全區，
+## 裡面每個節點的絕對位置全部會跟著跑掉、等於重排一次。改成只做「整份
+## 版面平移」：把整個 PortraitLayout/LandscapeLayout 節點（原本錨點
+## 0,0,0,0、固定貼在父層左上角）往右下移動 (left, top) 這麼多像素，不改
+## 它的尺寸，裡面每個子節點的相對位置完全不用動,底下棋盤(BoardAnchor)/
+## 按鈕都是用 global_position 動態算位置,平移之後自動跟著對,不用額外處理。
+## 這只解決「別被瀏海/手勢列擋到」,不解決「長螢幕比例比 1080x1920 還長,
+## 扣掉安全區還多出的空間怎麼運用」那個問題（那是另一個還沒決定怎麼做的
+## 課題,見跟使用者討論的那輪對話）——多數有瀏海的手機同時也比較長,平移
+## 這段距離用的就是那多出來的空間,不會反過來把畫面下緣推出安全區,但极端
+## 情況（瀏海很深、螢幕又沒有比較長）目前沒有特別處理,先觀察實機數字。
 ##
 ## 做法比照 Godot 社群常見寫法（godot-x/safe-area-x 這個外掛的核心邏輯）：
 ## DisplayServer.get_display_safe_area() 回傳的是「螢幕座標」的安全矩形，
@@ -30,6 +43,7 @@ var bottom: float = 0.0
 
 var _debug_layer: CanvasLayer
 var _debug_label: Label
+var _registered_controls: Array[Control] = []
 
 func _ready() -> void:
 	get_tree().root.size_changed.connect(_refresh)
@@ -53,9 +67,32 @@ func _refresh() -> void:
 		bottom = 0.0
 	safe_area_changed.emit(left, top, right, bottom)
 	_update_debug_overlay(Vector2(window_size))
+	_apply_registered_controls()
 
 func _on_player_settings_changed() -> void:
 	_update_debug_visibility()
+
+## 呼叫端（例如 Battle.gd）在 _ready() 把自己版面的最外層節點（例如
+## portrait_layout/landscape_layout）丟進來註冊一次就好，這裡會立刻套用
+## 目前的邊距，之後視窗大小/安全區變了（轉向、換裝置）也會自動重新套用，
+## 呼叫端不用自己接 safe_area_changed。節點被 queue_free() 之後會在下一次
+## 重算時自動從清單裡濾掉，不用手動取消註冊。
+func register_control(control: Control) -> void:
+	if control not in _registered_controls:
+		_registered_controls.append(control)
+	_position_control(control)
+
+func _apply_registered_controls() -> void:
+	_registered_controls = _registered_controls.filter(func(c): return is_instance_valid(c))
+	for control in _registered_controls:
+		_position_control(control)
+
+## 只平移、不改尺寸——理由見檔案開頭的說明。假設 control 錨點是 (0,0,0,0)
+## （這幾份版面的根節點本來就是這樣，見 BattleLayoutPortrait/Landscape.tscn），
+## 這種錨點下 position 直接對應 offset_left/offset_top，設 position 就相當於
+## 整塊往右下移動，不影響子節點的相對位置。
+func _position_control(control: Control) -> void:
+	control.position = Vector2(left, top)
 
 ## ---- 除錯顯示：4 條半透明紅色色塊標出被吃掉的範圍 + 文字寫出實際數字 ----
 
