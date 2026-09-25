@@ -23,6 +23,7 @@ BattleSettings="*res://Script/BattleSettings.gd"
 PlayerSettings="*res://Script/PlayerSettings.gd"
 PlayerProfile="*res://Script/PlayerProfile.gd"
 SoundEffects="*res://Script/SoundEffects.gd"
+SafeArea="*res://Script/SafeArea.gd"
 
 [display]
 

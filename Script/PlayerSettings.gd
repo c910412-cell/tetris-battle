@@ -33,6 +33,12 @@ var move_repeat_sec: float = 0.03
 ## 可以離線單獨測試，見該檔案開頭的說明）。
 var soft_drop_interval_sec: float = 0.08
 
+## 2026-09-25 新增：safe area 除錯顯示開關（見 SafeArea.gd）——先讓使用者
+## 自己手機上看得到瀏海/手勢列吃掉多少像素、盤面比例多出多少空間，決定好
+## 要怎麼運用多出來的空間之後，這顆開關可能會拿掉或改用途，先當一般設定
+## 開關做，預設開著方便這次直接測試。
+var show_safe_area_debug: bool = true
+
 func _ready() -> void:
 	_load()
 
@@ -61,6 +67,11 @@ func set_soft_drop_interval_sec(value: float) -> void:
 	_save()
 	settings_changed.emit()
 
+func set_show_safe_area_debug(enabled: bool) -> void:
+	show_safe_area_debug = enabled
+	_save()
+	settings_changed.emit()
+
 ## 震動回饋的統一入口——關掉開關或在桌機上跑都直接安靜跳過，呼叫端不用自己
 ## 判斷平台/開關狀態。
 func vibrate(duration_msec: int = 40) -> void:
@@ -77,6 +88,7 @@ func _save() -> void:
 	config.set_value("settings", "sound_effects_enabled", sound_effects_enabled)
 	config.set_value("settings", "move_repeat_sec", move_repeat_sec)
 	config.set_value("settings", "soft_drop_interval_sec", soft_drop_interval_sec)
+	config.set_value("settings", "show_safe_area_debug", show_safe_area_debug)
 	config.save(SAVE_PATH)
 
 func _load() -> void:
@@ -88,3 +100,4 @@ func _load() -> void:
 	sound_effects_enabled = config.get_value("settings", "sound_effects_enabled", true)
 	move_repeat_sec = config.get_value("settings", "move_repeat_sec", 0.03)
 	soft_drop_interval_sec = config.get_value("settings", "soft_drop_interval_sec", 0.08)
+	show_safe_area_debug = config.get_value("settings", "show_safe_area_debug", true)
