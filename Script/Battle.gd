@@ -70,8 +70,6 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var lines_label_landscape: Label = $BoardLayer/LandscapeLayout/LinesLabel
 @onready var level_label_portrait: Label = $BoardLayer/PortraitLayout/LevelLabel
 @onready var level_label_landscape: Label = $BoardLayer/LandscapeLayout/LevelLabel
-@onready var countdown_label_portrait: Label = $BoardLayer/PortraitLayout/CountdownLabel
-@onready var countdown_label_landscape: Label = $BoardLayer/LandscapeLayout/CountdownLabel
 ## 2026-09-24 新增：本地玩家自己被淘汰、但隊伍還沒整個輸掉時顯示的提示——
 ## 見 _on_participant_eliminated() 的說明。
 @onready var eliminated_label_portrait: Label = $BoardLayer/PortraitLayout/EliminatedLabel
@@ -86,6 +84,10 @@ const COUNTDOWN_SECONDS := 3.0
 ## 又搬去哪個節點底下，只要名字沒改，這裡都找得到，不會再因為重新掛父節點
 ## 就整個 null 掉。按鈕類節點沒有這個問題（使用者不會去動它們的父節點），
 ## 維持原本寫死路徑就好，不用全部都改。
+## 2026-09-25 修正：CountdownLabel 被拖進 BoardAspect 底下（跟著棋盤縮放）
+## 之後，寫死路徑就會 null——跟這幾個一樣的問題，一起改用 find_child()。
+@onready var countdown_label_portrait: Label = portrait_layout.find_child("CountdownLabel", true, false) as Label
+@onready var countdown_label_landscape: Label = landscape_layout.find_child("CountdownLabel", true, false) as Label
 @onready var board_anchor_portrait: Control = portrait_layout.find_child("BoardAnchor", true, false) as Control
 @onready var hold_panel_portrait: Control = portrait_layout.find_child("HoldPanel", true, false) as Control
 @onready var next_panel_portrait: Control = portrait_layout.find_child("NextPanel", true, false) as Control
@@ -165,8 +167,11 @@ const COUNTDOWN_SECONDS := 3.0
 ## Settings.tscn（見 Lobby.gd._on_settings_pressed() 的 instantiate/
 ## add_child/tree_exited 慣例），對戰中也能調移動速度等個人設定,不用退出對戰
 ## 才能改。
-@onready var battle_settings_button_portrait: Button = $BoardLayer/PortraitLayout/BattleSettingsButton
-@onready var battle_settings_button_landscape: Button = $BoardLayer/LandscapeLayout/BattleSettingsButton
+## 2026-09-25：Portrait 版換成貼圖按鈕（見 Image/設定.png），跟 Landscape 那顆
+## 還是文字+底色的 Button 不是同一種節點類型——兩邊都只用得到 BaseButton
+## 共同的 pressed 訊號，型別標註改寬一點，兩種節點都收得下。
+@onready var battle_settings_button_portrait: BaseButton = $BoardLayer/PortraitLayout/BattleSettingsButton
+@onready var battle_settings_button_landscape: BaseButton = $BoardLayer/LandscapeLayout/BattleSettingsButton
 
 var _director: BattleDirector
 var _local_peer_id: int = 1

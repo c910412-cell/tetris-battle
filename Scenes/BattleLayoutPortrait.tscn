@@ -14,13 +14,8 @@
 [ext_resource type="Script" uid="uid://dsbcgk6n514mg" path="res://Script/TetrisGestureZone.gd" id="12"]
 [ext_resource type="Script" uid="uid://bat67mpfamqv5" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
 [ext_resource type="Script" uid="uid://cjxlpln8tfsnh" path="res://Script/PendingDotsAnchor.gd" id="14"]
-
-[sub_resource type="StyleBoxFlat" id="BattleSettingsButtonStyle"]
-bg_color = Color(0.06879827, 0.06879828, 0.06879828, 0.7)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+[ext_resource type="Texture2D" uid="uid://box0obtagdvjk" path="res://Image/暫停.png" id="15_s4edx"]
+[ext_resource type="Texture2D" uid="uid://cjhoy48dq8x82" path="res://Image/設定.png" id="16_settings"]
 
 [node name="BattleLayoutPortrait" type="Control" unique_id=1272861030]
 layout_mode = 3
@@ -44,14 +39,27 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -449.0
-offset_top = -854.0
-offset_right = 359.0
-offset_bottom = 762.0
+offset_left = -404.0
+offset_top = -808.0
+offset_right = 404.0
+offset_bottom = 808.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 ratio = 0.5
+
+[node name="CountdownPlaceholder" type="ReferenceRect" parent="BoardAspect" unique_id=250648853]
+layout_mode = 2
+mouse_filter = 2
+border_color = Color(1, 1, 1, 0.6)
+border_width = 3.0
+
+[node name="CountdownLabel" type="Label" parent="BoardAspect" unique_id=1258767426]
+layout_mode = 2
+theme_override_font_sizes/font_size = 180
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="BoardAnchor" type="Control" parent="BoardAspect" unique_id=798791779]
 layout_mode = 2
@@ -287,6 +295,7 @@ offset_right = 1040.0
 offset_bottom = 1500.0
 
 [node name="OpponentSlots2" parent="." unique_id=230358606 instance=ExtResource("10")]
+visible = false
 anchors_preset = 0
 offset_left = 920.0
 offset_top = 460.0
@@ -294,6 +303,7 @@ offset_right = 1040.0
 offset_bottom = 1500.0
 
 [node name="OpponentSlots3" parent="." unique_id=732173734 instance=ExtResource("11")]
+visible = false
 anchors_preset = 0
 offset_left = 920.0
 offset_top = 460.0
@@ -320,32 +330,35 @@ script = ExtResource("1")
 input_action = "tetris_hold"
 
 [node name="PauseButton" type="TextureButton" parent="." unique_id=901765834]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -140.0
-offset_top = 50.0
-offset_right = -40.0
-offset_bottom = 150.0
+offset_left = -124.0
+offset_top = 21.0
+offset_right = -24.0
+offset_bottom = 121.0
+grow_horizontal = 0
+texture_normal = ExtResource("15_s4edx")
 ignore_texture_size = true
 stretch_mode = 5
 script = ExtResource("1")
 input_action = "tetris_pause"
 button_color = Color(1, 0.6, 0.1, 0.5)
 
-[node name="BattleSettingsButton" type="Button" parent="."]
-layout_mode = 0
+[node name="BattleSettingsButton" type="TextureButton" parent="." unique_id=1435225799]
+layout_mode = 1
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -240.0
-offset_top = 50.0
-offset_right = -150.0
-offset_bottom = 150.0
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("BattleSettingsButtonStyle")
-theme_override_styles/pressed = SubResource("BattleSettingsButtonStyle")
-theme_override_styles/hover = SubResource("BattleSettingsButtonStyle")
-text = "⚙"
+offset_left = -224.0
+offset_top = 21.0
+offset_right = -134.0
+offset_bottom = 121.0
+grow_horizontal = 0
+texture_normal = ExtResource("16_settings")
+ignore_texture_size = true
+stretch_mode = 5
 
 [node name="ScorePlaceholder" type="ReferenceRect" parent="." unique_id=461987479]
 layout_mode = 0
@@ -404,37 +417,17 @@ offset_bottom = 82.0
 theme_override_font_sizes/font_size = 30
 text = "等級: 1"
 
-[node name="CountdownPlaceholder" type="ReferenceRect" parent="." unique_id=250648853]
-layout_mode = 0
-offset_left = 440.0
-offset_top = 900.0
-offset_right = 640.0
-offset_bottom = 1020.0
-mouse_filter = 2
-border_color = Color(1, 1, 1, 0.6)
-border_width = 3.0
-
-[node name="CountdownLabel" type="Label" parent="." unique_id=1258767426]
-layout_mode = 0
-offset_left = 440.0
-offset_top = 900.0
-offset_right = 640.0
-offset_bottom = 1020.0
-theme_override_font_sizes/font_size = 72
-text = "3"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="EliminatedLabel" type="Label" parent="."]
+[node name="EliminatedLabel" type="Label" parent="." unique_id=1522796663]
 visible = false
+layout_mode = 0
 offset_left = 340.0
 offset_top = 860.0
 offset_right = 740.0
 offset_bottom = 1060.0
-theme_override_font_sizes/font_size = 40
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_constants/outline_size = 8
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
 text = "已被淘汰
 等待隊友…"
 horizontal_alignment = 1
