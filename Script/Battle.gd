@@ -128,6 +128,11 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var move_gesture_zone_landscape: Control = $BoardLayer/LandscapeLayout/MoveGestureZone
 @onready var hold_button_landscape: Control = $BoardLayer/LandscapeLayout/HoldButton
 
+## 2026-09-25 使用者自己加的底部裝飾色塊——目前只有直向版有這個節點。跟
+## 操控按鈕一樣要「拆開」不要跟著 safe area 平移（見下面 exempt_from_
+## translation 那段的說明）。
+@onready var color_rect_bottom_portrait: Control = $BoardLayer/PortraitLayout/ColorRectbottom
+
 ## 對手縮小盤面依人數（1~3）分開排版，見上方檔案說明。索引 0=1 人、1=2 人、
 ## 2=3 人；直向/橫向各自一組，靠父節點（PortraitLayout/LandscapeLayout）
 ## visible 一起切換,不用另外處理。
@@ -303,6 +308,18 @@ func _ready() -> void:
 			hard_drop_button_landscape, move_left_button_landscape, move_right_button_landscape,
 			soft_drop_button_landscape, hold_button_landscape]:
 		SafeArea.exempt_from_translation(button)
+	## 使用者自己加的底部裝飾色塊也要求「拆開」，理由跟上面操控按鈕一樣——
+	## 貼齊螢幕最下緣的東西不該因為上方的瀏海留白就跟著往下推,那樣反而可能
+	## 被推出畫面或跟底部手勢列打架。
+	SafeArea.exempt_from_translation(color_rect_bottom_portrait)
+	## 2026-09-25 新增：暫停/結算這兩層覆蓋畫面（BattlePause/ResultLayout*.tscn）
+	## 也是「固定 1080x1920 基準尺寸、絕對像素排版」，跟 BoardLayer 同一種
+	## 排版方式，一樣用 register_control()（整塊平移），不是選單畫面那種
+	## 撐滿型的 register_inset_control()。
+	SafeArea.register_control(pause_layout_portrait)
+	SafeArea.register_control(pause_layout_landscape)
+	SafeArea.register_control(result_layout_portrait)
+	SafeArea.register_control(result_layout_landscape)
 
 	_match_sync = BattleMatchSync.new()
 	_match_sync.name = "BattleMatchSync"
@@ -744,15 +761,19 @@ func _request_leave_vote() -> void:
 ## 下一局，不用整個重新搜尋/加入。這個函式只會在 host 這台裝置上執行（見
 ## _on_pause_leave_pressed()／_request_leave_vote() 的呼叫路徑），
 ## end_match() 內部會再檢查一次「呼叫者是不是房主」才會真的生效。
+## 2026-09-25 使用者回報：加入方（非房主）投的那一票如果剛好是「湊過半數」
+## 的那一票，畫面上完全看不到投票結果就直接被帶去結算——根因是原本「過半數
+## 就直接呼叫 end_match()」跟「廣播目前票數給大家看」是互斥的 if/else，湊
+## 過半數的那一刻直接跳過廣播。改成不管有沒有過半，都先廣播一次最新票數
+## （這樣投出關鍵一票的人也看得到最終票數點點），再判斷要不要真的結束。
 func _handle_leave_vote(sender_id: int) -> void:
 	if _leave_votes.has(sender_id):
 		return  # 每人只能投一次，不能反悔取消
 	_leave_votes[sender_id] = true
 	var total := _real_participant_count()
+	_broadcast_leave_votes.rpc(_leave_votes.size(), total)
 	if _leave_votes.size() * 2 > total:
 		NetworkManager.end_match()
-	else:
-		_broadcast_leave_votes.rpc(_leave_votes.size(), total)
 
 @rpc("authority", "call_local", "reliable")
 func _broadcast_leave_votes(vote_count: int, total: int) -> void:
@@ -850,19 +871,24 @@ func _on_participant_eliminated(participant_id: int) -> void:
 	if not _local_participant or participant_id != _local_participant.id:
 		return
 	PlayerSettings.vibrate(200)
-	if _local_team_has_survivor():
+	if _round_continues_after_elimination():
 		eliminated_label_portrait.visible = true
 		eliminated_label_landscape.visible = true
 
-## 本地玩家所在隊伍，除了自己之外還有沒有其他還活著（沒淘汰、沒斷線）的人
-## ——「已被淘汰/等待隊友」這句話只有在真的還有隊友可以等時才成立。
-func _local_team_has_survivor() -> bool:
+## 這次淘汰之後回合還會不會繼續——不是只看「隊友」還活著沒有（單人模式常見
+## 玩家自己單獨一隊、沒有隊友，AI 卻分屬其他隊伍還活著，這種情況舊版邏輯會
+## 誤判成「沒人可以等」而不顯示，2026-09-25 使用者回報修正），改成跟
+## BattleDirector._check_round_end() 同一套「還有幾隊活著」判斷：自己淘汰
+## 之後,只要還有 2 隊（不管是不是我隊友）沒被淘汰/斷線,回合就還沒結束,
+## 這句「已被淘汰/等待中」就該顯示;剩 1 隊或 0 隊代表回合會在同一個呼叫鏈裡
+## 緊接著結束,交給 _on_round_ended() 顯示結算畫面就好,不要疊字。
+func _round_continues_after_elimination() -> bool:
+	var alive_teams := {}
 	for pid in _director.participants:
 		var other: BattleParticipant = _director.participants[pid]
-		if other.id != _local_participant.id and other.team_index == _local_participant.team_index \
-				and not other.is_eliminated and not other.is_disconnected:
-			return true
-	return false
+		if not other.is_eliminated and not other.is_disconnected:
+			alive_teams[other.team_index] = true
+	return alive_teams.size() >= 2
 
 func _start_round_transition_flash() -> void:
 	_round_transition_flash_active = true

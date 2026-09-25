@@ -50,6 +50,9 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+	## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——撐滿整個父層的 PortraitLayout
+	## 用 register_inset_control()。
+	SafeArea.register_inset_control(portrait_layout)
 
 func _exit_tree() -> void:
 	if _touch_helper_active:

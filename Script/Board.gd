@@ -163,6 +163,15 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+	## 2026-09-25 新增：無盡挑戰的實際遊玩畫面（BoardLayer 底下這份）不用補
+	## safe area（使用者要求排除單人/本地對戰的遊玩介面，這裡比照辦理）；
+	## 但暫停/結束這兩層覆蓋畫面不是遊玩介面本身,而且跟 Battle.tscn 的
+	## PauseLayer/ResultLayer 是同一種「固定 1080x1920 基準尺寸」排版方式,
+	## 一樣用 register_control()。
+	SafeArea.register_control(pause_layout_portrait)
+	SafeArea.register_control(pause_layout_landscape)
+	SafeArea.register_control(game_over_layout_portrait)
+	SafeArea.register_control(game_over_layout_landscape)
 
 	PlayerSettings.settings_changed.connect(_apply_gesture_controls)
 	_apply_gesture_controls()

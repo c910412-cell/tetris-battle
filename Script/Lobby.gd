@@ -37,8 +37,12 @@ class_name Lobby
 @onready var online_battle_cell_landscape: Button = $Root/LandscapeLayout/OnlineBattleCell
 @onready var endless_cell_portrait: Button = $Root/PortraitLayout/EndlessCell
 @onready var endless_cell_landscape: Button = $Root/LandscapeLayout/EndlessCell
-@onready var settings_button_portrait: Button = $Root/PortraitLayout/SettingsButton
-@onready var settings_button_landscape: Button = $Root/LandscapeLayout/SettingsButton
+## 2026-09-25：PortraitLayout 那顆改成跟 Battle.tscn 一樣的圖片按鈕
+## （TextureButton），LandscapeLayout 那顆維持文字版 Button——這兩個類別
+## 在 Godot 4 都直接繼承 BaseButton（不是 TextureButton 繼承 Button），
+## 型別要標成兩者共同的 BaseButton，標 Button 會在載入時噴型別不符的錯誤。
+@onready var settings_button_portrait: BaseButton = $Root/PortraitLayout/SettingsButton
+@onready var settings_button_landscape: BaseButton = $Root/LandscapeLayout/SettingsButton
 ## 2026-09-24 新增：左上角頭貼方塊＋名稱長條，跟右上角齒輪按鈕同一套
 ## instantiate/add_child/tree_exited 慣例，開的是 ProfileScreen.tscn。
 @export var profile_scene: PackedScene = preload("res://Scenes/ProfileScreen.tscn")
@@ -73,6 +77,11 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+	## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——這個畫面的 PortraitLayout
+	## 是撐滿整個螢幕的排版方式，用 register_inset_control()（往內縮四邊），
+	## 不是 Battle.tscn 那種固定尺寸、用 register_control()（整塊平移）的
+	## 做法。
+	SafeArea.register_inset_control(portrait_layout)
 
 ## 旋轉裝置、直向橫向比例翻轉時，切換顯示哪一組 PortraitLayout/
 ## LandscapeLayout，跟 Board.gd/Battle.gd 同一套做法。
@@ -138,10 +147,12 @@ func _refresh_profile_display() -> void:
 	name_plate_landscape.text = PlayerProfile.player_name
 
 
+## 2026-09-25：單人遊玩不用管理房間，跳過 RoomBattleSettings.tscn（現在只
+## 剩「房間資訊」，多人連線才會用到），直接進對戰規則畫面。
 func _on_solo_play_pressed() -> void:
 	BattleSettings.is_solo_mode = true
 	BattleSettings.reset_team_assignments()
-	get_tree().change_scene_to_file("res://Scenes/RoomBattleSettings.tscn")
+	get_tree().change_scene_to_file("res://Scenes/BattleRules.tscn")
 
 
 func _on_endless_pressed() -> void:

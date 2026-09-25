@@ -1,118 +1,156 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ct77ghd72ksf3"]
 
-[node name="SettingsLayoutPortrait" type="Control"]
-mouse_filter = 2
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="SettingsLayoutPortrait" type="Control" unique_id=1967669717]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 1080.0
 offset_bottom = 1920.0
+mouse_filter = 2
 
-[node name="FrameGuide" type="ReferenceRect" parent="."]
-editor_only = true
+[node name="FrameGuide" type="ReferenceRect" parent="." unique_id=506269729]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.3, 0.9, 1, 0.7)
 border_width = 4.0
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="TitleLabel" type="Label" parent="." unique_id=604067092]
+layout_mode = 1
 offset_left = 60.0
 offset_top = 80.0
 offset_right = 700.0
 offset_bottom = 150.0
-theme_override_font_sizes/font_size = 44
+theme_override_font_sizes/font_size = 110
 text = "設定"
 
-[node name="VibrationRow" type="HBoxContainer" parent="."]
+[node name="VibrationRow" type="HBoxContainer" parent="." unique_id=1129941196]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 320.0
 offset_right = 1020.0
 offset_bottom = 400.0
 
-[node name="Label" type="Label" parent="VibrationRow"]
+[node name="Label" type="Label" parent="VibrationRow" unique_id=1138245463]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "震動回饋（消行／被攻擊／淘汰）"
 autowrap_mode = 2
 
-[node name="VibrationToggle" type="CheckButton" parent="VibrationRow"]
+[node name="VibrationToggle" type="CheckButton" parent="VibrationRow" unique_id=459980021]
 layout_mode = 2
 
-[node name="GestureRow" type="HBoxContainer" parent="."]
+[node name="GestureRow" type="HBoxContainer" parent="." unique_id=570935538]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 460.0
 offset_right = 1020.0
 offset_bottom = 540.0
 
-[node name="Label" type="Label" parent="GestureRow"]
+[node name="Label" type="Label" parent="GestureRow" unique_id=1624375892]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "手勢操作（右側滑動：左滑左轉／右滑右轉／下滑到底）"
 autowrap_mode = 2
 
-[node name="GestureToggle" type="CheckButton" parent="GestureRow"]
+[node name="GestureToggle" type="CheckButton" parent="GestureRow" unique_id=899676002]
 layout_mode = 2
 
-[node name="MoveSpeedRow" type="HBoxContainer" parent="."]
+[node name="MoveSpeedRow" type="HBoxContainer" parent="." unique_id=1560343133]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 600.0
 offset_right = 1020.0
 offset_bottom = 680.0
 
-[node name="Label" type="Label" parent="MoveSpeedRow"]
+[node name="Label" type="Label" parent="MoveSpeedRow" unique_id=927979212]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "左右移動間隔（秒，越小越快）"
 autowrap_mode = 2
 
-[node name="MoveSpeedSpin" type="SpinBox" parent="MoveSpeedRow"]
-layout_mode = 2
+[node name="MoveSpeedSpin" type="SpinBox" parent="MoveSpeedRow" unique_id=767231413]
 custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
 min_value = 0.01
 max_value = 0.1
 step = 0.01
+value = 0.01
 
-[node name="SoftDropSpeedRow" type="HBoxContainer" parent="."]
+[node name="SoftDropSpeedRow" type="HBoxContainer" parent="." unique_id=1657959470]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 740.0
 offset_right = 1020.0
 offset_bottom = 820.0
 
-[node name="Label" type="Label" parent="SoftDropSpeedRow"]
+[node name="Label" type="Label" parent="SoftDropSpeedRow" unique_id=1121207689]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "下降速度間隔（秒，越小越快）"
 autowrap_mode = 2
 
-[node name="SoftDropSpeedSpin" type="SpinBox" parent="SoftDropSpeedRow"]
-layout_mode = 2
+[node name="SoftDropSpeedSpin" type="SpinBox" parent="SoftDropSpeedRow" unique_id=326691727]
 custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
 min_value = 0.02
 max_value = 0.2
 step = 0.01
+value = 0.02
 
-[node name="SoundRow" type="HBoxContainer" parent="."]
+[node name="SoundRow" type="HBoxContainer" parent="." unique_id=692024536]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 860.0
 offset_right = 1020.0
 offset_bottom = 940.0
 
-[node name="Label" type="Label" parent="SoundRow"]
+[node name="Label" type="Label" parent="SoundRow" unique_id=2117753683]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 40
 text = "音效"
 autowrap_mode = 2
 
-[node name="SoundToggle" type="CheckButton" parent="SoundRow"]
+[node name="SoundToggle" type="CheckButton" parent="SoundRow" unique_id=1722357710]
 layout_mode = 2
 
-[node name="CloseButton" type="Button" parent="."]
+[node name="AutoRotateRow" type="HBoxContainer" parent="." unique_id=805767943]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 980.0
+offset_right = 1020.0
+offset_bottom = 1060.0
+
+[node name="Label" type="Label" parent="AutoRotateRow" unique_id=434611349]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 40
+text = "自動轉向"
+autowrap_mode = 2
+
+[node name="AutoRotateToggle" type="CheckButton" parent="AutoRotateRow" unique_id=1801776534]
+layout_mode = 2
+
+[node name="CloseButton" type="Button" parent="." unique_id=1072973699]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 1780.0
 offset_right = 500.0
 offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "返回"

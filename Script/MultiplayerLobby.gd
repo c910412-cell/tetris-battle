@@ -43,6 +43,9 @@ const ROOM_BUTTON_HEIGHT := 64
 ## （instantiate/add_child 疊加模式）完全沒變，下面的註解提到 RoomLobby.tscn
 ## 的地方描述的還是同一套「疊上去/queue_free 收掉」慣例，只是換了場景檔案。
 const ROOM_LOBBY_SCENE: PackedScene = preload("res://Scenes/RoomBattleSettings.tscn")
+## 2026-09-25 新增：分隊畫面按返回時要重開的是這個，不是 ROOM_LOBBY_SCENE，
+## 見 NetworkManager.pending_reopen_battle_rules 的說明。
+const BATTLE_RULES_SCENE: PackedScene = preload("res://Scenes/BattleRules.tscn")
 const PASSWORD_PROMPT_SCENE_STYLE_MARGIN := 24
 
 var _room_lobby_instance: Control = null
@@ -79,6 +82,9 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+	## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——撐滿整個父層的 PortraitLayout
+	## 用 register_inset_control()。
+	SafeArea.register_inset_control(portrait_layout)
 
 	# 房主在 Board.tscn（見 NetworkManager.MATCH_SCENE_PATH）按下返回時
 	# （NetworkManager.end_match()）會把這個場景整個當成
@@ -97,7 +103,16 @@ func _ready() -> void:
 	# change_scene_to_file 用的是同一個道理。
 	if multiplayer.multiplayer_peer != null and get_tree().current_scene == self:
 		_set_host_join_disabled(true)
-		_open_room_lobby()
+		## 2026-09-25 新增：分隊畫面按返回（NetworkManager.return_to_room_
+		## settings()）重新整個載入這個場景時，要開的是對戰規則畫面
+		## （BattleRules.tscn），不是一般開房/加入房間流程要開的房間設定畫面
+		## （RoomBattleSettings.tscn）——見 NetworkManager.gd
+		## pending_reopen_battle_rules 的說明。
+		if NetworkManager.pending_reopen_battle_rules:
+			NetworkManager.pending_reopen_battle_rules = false
+			_open_battle_rules()
+		else:
+			_open_room_lobby()
 
 ## 旋轉裝置、直向橫向比例翻轉時，切換顯示哪一組 PortraitLayout/
 ## LandscapeLayout，跟 Lobby.gd/Board.gd 同一套做法。
@@ -142,9 +157,18 @@ func _on_join_pressed() -> void:
 ## 兩份 SearchEdit（直向/橫向）只有使用者正在看的那份會真的被打字，這裡先
 ## 把內容同步到另一份（設定 .text 不會再觸發 text_changed，不會無限迴圈），
 ## 這樣轉裝置時另一份不會顯示過期內容，也不影響搜尋過濾邏輯只認一份文字。
+## 2026-09-25 使用者回報：手機打字/刪字游標一直跳到第一格——根因是無論哪份
+## 觸發，這裡兩份的 .text 都無條件重新賦值一次，LineEdit 的 .text setter
+## 會把 caret 重置掉，即使賦的值一模一樣也一樣會重置，使用者正在打字的欄位
+## 因此每打一個字都被自己的 text_changed handler 反過來打斷 caret。改成
+## 只同步「內容真的不一樣」的那一份，使用者正在打的欄位不去動它。
 func _on_search_text_changed(new_text: String) -> void:
-	search_edit_portrait.text = new_text
-	search_edit_landscape.text = new_text
+	if search_edit_portrait.text != new_text:
+		search_edit_portrait.set_deferred("text", new_text)
+		search_edit_portrait.set_deferred("caret_column", new_text.length())
+	if search_edit_landscape.text != new_text:
+		search_edit_landscape.set_deferred("text", new_text)
+		search_edit_landscape.set_deferred("caret_column", new_text.length())
 	_refresh_room_list()
 
 
@@ -178,6 +202,7 @@ func _refresh_room_list() -> void:
 func _build_room_button(room: Dictionary) -> Button:
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(0, ROOM_BUTTON_HEIGHT)
+	btn.add_theme_font_size_override("font_size", 40)
 	var current_players: int = room.get("current_players", 1)
 	var max_players: int = room.get("max_players", 2)
 	var is_full := current_players >= max_players
@@ -223,7 +248,7 @@ func _show_password_prompt() -> void:
 	overlay.add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(360, 0)
+	panel.custom_minimum_size = Vector2(640, 0)
 	center.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -235,15 +260,21 @@ func _show_password_prompt() -> void:
 	layout.add_theme_constant_override("separation", 12)
 	margin.add_child(layout)
 
+	## 2026-09-25 使用者回報：這個小彈窗的字（標題/輸入框/按鈕）都比其他畫面
+	## 小很多——原本標題只有 20px、輸入框跟按鈕完全沒設字體大小（引擎預設
+	## 16px 上下），這裡統一比照選單文字的 40px 標準（不是滿版的「已暫停」
+	## 那種 110px 大標題——這個是小尺寸的確認對話框，面板本身只有 640px 寬,
+	## 110px 字會整個爆版,跟已暫停那種撐滿全螢幕的畫面不是同一類）。
 	var title := Label.new()
 	title.text = "這個房間需要密碼"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", 40)
 	layout.add_child(title)
 
 	var edit := LineEdit.new()
 	edit.placeholder_text = "輸入 4 位數密碼"
 	edit.max_length = 4
 	edit.virtual_keyboard_enabled = false
+	edit.add_theme_font_size_override("font_size", 40)
 	edit.text_changed.connect(_on_password_prompt_text_changed.bind(edit))
 	MobileLineEditHelper.setup(edit, DisplayServer.KEYBOARD_TYPE_NUMBER)
 	layout.add_child(edit)
@@ -256,12 +287,14 @@ func _show_password_prompt() -> void:
 	var cancel_btn := Button.new()
 	cancel_btn.text = "取消"
 	cancel_btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	cancel_btn.add_theme_font_size_override("font_size", 40)
 	SoundEffects.connect_button(cancel_btn)
 	cancel_btn.pressed.connect(_on_password_prompt_cancelled)
 	button_row.add_child(cancel_btn)
 
 	var confirm_btn := Button.new()
 	confirm_btn.text = "確認"
+	confirm_btn.add_theme_font_size_override("font_size", 40)
 	confirm_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	SoundEffects.connect_button(confirm_btn)
 	confirm_btn.pressed.connect(_on_password_prompt_confirmed)
@@ -340,6 +373,17 @@ func _open_room_lobby() -> void:
 	if is_instance_valid(_room_lobby_instance):
 		return
 	_room_lobby_instance = ROOM_LOBBY_SCENE.instantiate()
+	add_child(_room_lobby_instance)
+	_room_lobby_instance.tree_exited.connect(_on_room_lobby_closed)
+
+## 見 NetworkManager.pending_reopen_battle_rules 的說明——分隊畫面按返回，
+## 重新載入這個場景時要疊出對戰規則畫面，不是房間設定畫面；跟
+## _open_room_lobby() 共用同一個 _room_lobby_instance/_on_room_lobby_closed()
+## 收尾邏輯（兩者互斥，同一時間只會有一個疊在這上面）。
+func _open_battle_rules() -> void:
+	if is_instance_valid(_room_lobby_instance):
+		return
+	_room_lobby_instance = BATTLE_RULES_SCENE.instantiate()
 	add_child(_room_lobby_instance)
 	_room_lobby_instance.tree_exited.connect(_on_room_lobby_closed)
 

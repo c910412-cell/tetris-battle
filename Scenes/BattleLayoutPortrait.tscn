@@ -9,8 +9,8 @@
 [ext_resource type="Texture2D" uid="uid://7gkru1s3iymw" path="res://Image/右轉.png" id="7"]
 [ext_resource type="Texture2D" uid="uid://dbq2j52e50jxm" path="res://Image/hold.png" id="8"]
 [ext_resource type="PackedScene" uid="uid://bj71ructu7cdh" path="res://Scenes/OpponentSlots1.tscn" id="9"]
-[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots2.tscn" id="10"]
-[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots3.tscn" id="11"]
+[ext_resource type="PackedScene" uid="uid://bj2i18hh2elxl" path="res://Scenes/OpponentSlots2.tscn" id="10"]
+[ext_resource type="PackedScene" uid="uid://dgoekf05dji43" path="res://Scenes/OpponentSlots3.tscn" id="11"]
 [ext_resource type="Script" uid="uid://dsbcgk6n514mg" path="res://Script/TetrisGestureZone.gd" id="12"]
 [ext_resource type="Script" uid="uid://bat67mpfamqv5" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
 [ext_resource type="Texture2D" uid="uid://box0obtagdvjk" path="res://Image/暫停.png" id="15_s4edx"]
@@ -83,8 +83,8 @@ border_width = 3.0
 
 [node name="GarbageBarAnchor" type="Control" parent="BoardAspect/BoardAnchor" unique_id=2036585763]
 anchors_preset = 0
-offset_left = -40.0
-offset_right = -10.0
+offset_left = -31.0
+offset_right = -1.0
 offset_bottom = 1616.0
 mouse_filter = 2
 
@@ -207,13 +207,16 @@ border_color = Color(0.9, 0.8, 0.2, 0.7)
 border_width = 3.0
 
 [node name="MoveLeftButton" type="TextureButton" parent="." unique_id=737910751]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = -270.0
-offset_right = 160.0
-offset_bottom = -150.0
+offset_left = 35.0
+offset_top = -403.0
+offset_right = 155.0
+offset_bottom = -283.0
+grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("2")
 ignore_texture_size = true
 stretch_mode = 5
@@ -221,13 +224,16 @@ script = ExtResource("1")
 input_action = "tetris_move_left"
 
 [node name="MoveRightButton" type="TextureButton" parent="." unique_id=539330683]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 170.0
-offset_top = -270.0
-offset_right = 290.0
-offset_bottom = -150.0
+offset_left = 229.0
+offset_top = -403.0
+offset_right = 349.0
+offset_bottom = -283.0
+grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("3")
 ignore_texture_size = true
 stretch_mode = 5
@@ -235,13 +241,16 @@ script = ExtResource("1")
 input_action = "tetris_move_right"
 
 [node name="SoftDropButton" type="TextureButton" parent="." unique_id=2070497665]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 105.0
-offset_top = -160.0
-offset_right = 225.0
-offset_bottom = -40.0
+offset_left = 134.0
+offset_top = -238.0
+offset_right = 254.0
+offset_bottom = -118.0
+grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("4")
 ignore_texture_size = true
 stretch_mode = 5
@@ -263,12 +272,13 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -160.0
-offset_top = -270.0
-offset_right = -40.0
-offset_bottom = -150.0
+offset_left = -204.0
+offset_top = -404.0
+offset_right = -84.0
+offset_bottom = -284.0
 grow_horizontal = 0
 grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("6")
 ignore_texture_size = true
 stretch_mode = 5
@@ -282,12 +292,13 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -290.0
-offset_top = -270.0
-offset_right = -170.0
-offset_bottom = -150.0
+offset_left = -396.0
+offset_top = -404.0
+offset_right = -276.0
+offset_bottom = -284.0
 grow_horizontal = 0
 grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("7")
 ignore_texture_size = true
 stretch_mode = 5
@@ -295,15 +306,19 @@ script = ExtResource("1")
 input_action = "tetris_rotate_ccw"
 
 [node name="HardDropButton" type="TextureButton" parent="." unique_id=1001047645]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -225.0
-offset_top = -160.0
-offset_right = -105.0
-offset_bottom = -40.0
+offset_left = -299.0
+offset_top = -241.0
+offset_right = -179.0
+offset_bottom = -121.0
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("5")
 ignore_texture_size = true
 stretch_mode = 5
@@ -325,26 +340,32 @@ anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -190.0
-offset_top = 754.0
+offset_top = 755.0
 offset_right = -15.0
-offset_bottom = 1037.0
+offset_bottom = 1038.0
 grow_horizontal = 0
 
 [node name="OpponentSlots2" parent="." unique_id=230358606 instance=ExtResource("10")]
-visible = false
-anchors_preset = 0
-offset_left = 881.0
-offset_top = 702.0
-offset_right = 1001.0
-offset_bottom = 1742.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -182.0
+offset_top = 748.0
+offset_right = -24.0
+offset_bottom = 1356.0
+grow_horizontal = 0
 
 [node name="OpponentSlots3" parent="." unique_id=732173734 instance=ExtResource("11")]
-visible = false
-anchors_preset = 0
-offset_left = 881.0
-offset_top = 702.0
-offset_right = 1001.0
-offset_bottom = 1742.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -182.0
+offset_top = 746.0
+offset_right = -24.0
+offset_bottom = 1669.0
+grow_horizontal = 0
 
 [node name="HoldButton" type="TextureButton" parent="." unique_id=2137172824]
 layout_mode = 1
@@ -353,12 +374,13 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -377.0
-offset_top = -160.0
-offset_right = -257.0
-offset_bottom = -40.0
+offset_left = -497.0
+offset_top = -241.0
+offset_right = -377.0
+offset_bottom = -121.0
 grow_horizontal = 0
 grow_vertical = 0
+scale = Vector2(1.4400026, 1.4400026)
 texture_normal = ExtResource("8")
 ignore_texture_size = true
 stretch_mode = 5
@@ -456,19 +478,37 @@ text = "等級: 1"
 [node name="EliminatedLabel" type="Label" parent="." unique_id=1522796663]
 visible = false
 layout_mode = 0
-offset_left = 340.0
-offset_top = 860.0
-offset_right = 740.0
-offset_bottom = 1060.0
+offset_left = 90.0
+offset_top = 760.0
+offset_right = 990.0
+offset_bottom = 1160.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 110
 text = "已被淘汰
 等待隊友…"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="ColorRectbottom" type="ColorRect" parent="." unique_id=921255826]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -548.0
+offset_top = -411.0
+offset_right = -508.0
+offset_bottom = -371.0
+grow_horizontal = 2
+grow_vertical = 0
+scale = Vector2(27.679998, 11.44)
+mouse_filter = 2
+color = Color(0.16565639, 0.16565642, 0.16565639, 1)
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1467233852]
 show_behind_parent = true

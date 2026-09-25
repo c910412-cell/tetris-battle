@@ -1,4 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://5vxunhn0nb2r"]
+
+[ext_resource type="Texture2D" uid="uid://cjhoy48dq8x82" path="res://Image/設定.png" id="1_settings"]
 
 [sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
 bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
@@ -7,76 +9,123 @@ corner_radius_top_right = 16
 corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 
-[node name="LobbyLayoutPortrait" type="Control"]
-mouse_filter = 2
+[node name="LobbyLayoutPortrait" type="Control" unique_id=1214324365]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 1080.0
 offset_bottom = 1920.0
+mouse_filter = 2
 
-[node name="FrameGuide" type="ReferenceRect" parent="."]
-editor_only = true
+[node name="FrameGuide" type="ReferenceRect" parent="." unique_id=832179707]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.3, 0.9, 1, 0.7)
 border_width = 4.0
 
-[node name="TitleLabel" type="Label" parent="."]
-offset_left = 140.0
-offset_top = 300.0
-offset_right = 940.0
-offset_bottom = 380.0
-theme_override_font_sizes/font_size = 36
-horizontal_alignment = 1
-text = "俄羅斯方塊對戰"
+[node name="ColorRect" type="ColorRect" parent="." unique_id=290441115]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -551.0
+offset_top = -3.0
+offset_right = -511.0
+offset_bottom = 56.89012
+grow_horizontal = 2
+scale = Vector2(27.679998, 3.6399996)
+mouse_filter = 2
+color = Color(0.16565639, 0.16565642, 0.16565639, 1)
 
-[node name="SoloPlayCell" type="Button" parent="."]
-offset_left = 240.0
-offset_top = 500.0
-offset_right = 840.0
-offset_bottom = 700.0
-theme_override_font_sizes/font_size = 28
+[node name="TitleLabel" type="Label" parent="." unique_id=1893343898]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400.0
+offset_top = 421.0
+offset_right = 400.0
+offset_bottom = 572.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 110
+text = "俄羅斯方塊對戰"
+horizontal_alignment = 1
+
+[node name="SoloPlayCell" type="Button" parent="." unique_id=1560764741]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -210.0
+offset_right = 180.0
+offset_bottom = -86.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 90
 theme_override_styles/normal = SubResource("ButtonStyleNormal")
 theme_override_styles/pressed = SubResource("ButtonStyleNormal")
 theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "單人遊玩"
 
-[node name="OnlineBattleCell" type="Button" parent="."]
-offset_left = 240.0
-offset_top = 740.0
-offset_right = 840.0
-offset_bottom = 940.0
-theme_override_font_sizes/font_size = 22
+[node name="OnlineBattleCell" type="Button" parent="." unique_id=1260178831]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -62.0
+offset_right = 180.0
+offset_bottom = 62.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 90
 theme_override_styles/normal = SubResource("ButtonStyleNormal")
 theme_override_styles/pressed = SubResource("ButtonStyleNormal")
 theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "本地連線
-（同 WiFi）"
+"
 
-[node name="EndlessCell" type="Button" parent="."]
-offset_left = 240.0
-offset_top = 980.0
-offset_right = 840.0
-offset_bottom = 1180.0
-theme_override_font_sizes/font_size = 28
+[node name="EndlessCell" type="Button" parent="." unique_id=1898682147]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = 90.0
+offset_right = 180.0
+offset_bottom = 214.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 90
 theme_override_styles/normal = SubResource("ButtonStyleNormal")
 theme_override_styles/pressed = SubResource("ButtonStyleNormal")
 theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "無盡挑戰"
 
-[node name="SettingsButton" type="Button" parent="."]
+[node name="SettingsButton" type="TextureButton" parent="." unique_id=1690930680]
+layout_mode = 1
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -140.0
 offset_top = 50.0
 offset_right = -40.0
 offset_bottom = 150.0
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("ButtonStyleNormal")
-theme_override_styles/pressed = SubResource("ButtonStyleNormal")
-theme_override_styles/hover = SubResource("ButtonStyleNormal")
-text = "⚙"
+texture_normal = ExtResource("1_settings")
+ignore_texture_size = true
+stretch_mode = 5
 
-[node name="AvatarButton" type="TextureButton" parent="."]
+[node name="AvatarButton" type="TextureButton" parent="." unique_id=1950412129]
+layout_mode = 1
 offset_left = 40.0
 offset_top = 50.0
 offset_right = 140.0
@@ -84,13 +133,14 @@ offset_bottom = 150.0
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="NamePlate" type="Label" parent="."]
+[node name="NamePlate" type="Label" parent="." unique_id=1072300763]
+layout_mode = 1
 offset_left = 160.0
 offset_top = 50.0
 offset_right = 500.0
 offset_bottom = 150.0
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
 theme_override_styles/normal = SubResource("ButtonStyleNormal")
+text = "玩家"
 horizontal_alignment = 1
 vertical_alignment = 1
-text = "玩家"

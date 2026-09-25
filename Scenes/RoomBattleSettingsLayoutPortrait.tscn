@@ -1,312 +1,222 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://d6gehxpyur7q"]
 
-[node name="RoomBattleSettingsLayoutPortrait" type="Control"]
-mouse_filter = 2
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="RoomBattleSettingsLayoutPortrait" type="Control" unique_id=598979890]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 1080.0
 offset_bottom = 1920.0
+mouse_filter = 2
 
-[node name="FrameGuide" type="ReferenceRect" parent="."]
-editor_only = true
+[node name="FrameGuide" type="ReferenceRect" parent="." unique_id=657168961]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.3, 0.9, 1, 0.7)
 border_width = 4.0
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="TitleLabel" type="Label" parent="." unique_id=336939807]
+layout_mode = 1
 offset_left = 60.0
 offset_top = 40.0
 offset_right = 700.0
 offset_bottom = 110.0
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 110
 text = "房間設定"
 
-[node name="SettingsScroll" type="ScrollContainer" parent="."]
+[node name="SettingsScroll" type="ScrollContainer" parent="." unique_id=1205864452]
+layout_mode = 0
 offset_left = 60.0
-offset_top = 120.0
+offset_top = 215.0
 offset_right = 1020.0
-offset_bottom = 1700.0
+offset_bottom = 1795.0
 
-[node name="SettingsList" type="VBoxContainer" parent="SettingsScroll"]
+[node name="SettingsList" type="VBoxContainer" parent="SettingsScroll" unique_id=1733964576]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 20
 
-[node name="RoomInfoSection" type="VBoxContainer" parent="SettingsScroll/SettingsList"]
+[node name="RoomInfoSection" type="VBoxContainer" parent="SettingsScroll/SettingsList" unique_id=816136328]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="RoomInfoTitle" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "房間資訊"
+[node name="RoomInfoTitle" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=1469992095]
 modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = "房間資訊"
 
-[node name="MapRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection"]
+[node name="MapRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=241775944]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/MapRow"]
+[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/MapRow" unique_id=2120231469]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
+autowrap_mode = 2
 text = "地圖"
 
-[node name="MapOption" type="OptionButton" parent="SettingsScroll/SettingsList/RoomInfoSection/MapRow"]
-layout_mode = 2
+[node name="MapOption" type="OptionButton" parent="SettingsScroll/SettingsList/RoomInfoSection/MapRow" unique_id=2143265101]
 custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
 
-[node name="MaxPlayersRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection"]
+[node name="MaxPlayersRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=1925974032]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/MaxPlayersRow"]
+[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/MaxPlayersRow" unique_id=1946180478]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
+autowrap_mode = 2
 text = "人數上限"
 
-[node name="MaxPlayersOption" type="OptionButton" parent="SettingsScroll/SettingsList/RoomInfoSection/MaxPlayersRow"]
-layout_mode = 2
+[node name="MaxPlayersOption" type="OptionButton" parent="SettingsScroll/SettingsList/RoomInfoSection/MaxPlayersRow" unique_id=1357911695]
 custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
 
-[node name="RoomNameRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection"]
+[node name="RoomNameRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=1879868153]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/RoomNameRow"]
+[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/RoomNameRow" unique_id=1253317084]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
+autowrap_mode = 2
 text = "房間名稱"
 
-[node name="RoomNameEdit" type="LineEdit" parent="SettingsScroll/SettingsList/RoomInfoSection/RoomNameRow"]
-layout_mode = 2
+[node name="RoomNameEdit" type="LineEdit" parent="SettingsScroll/SettingsList/RoomInfoSection/RoomNameRow" unique_id=802089197]
 custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
 placeholder_text = "取一個房間名稱"
 max_length = 20
 virtual_keyboard_enabled = false
 
-[node name="PasswordRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection"]
+[node name="PasswordRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=1166377806]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/PasswordRow"]
+[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/PasswordRow" unique_id=1700335527]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
+autowrap_mode = 2
 text = "房間密碼"
 
-[node name="PasswordEdit" type="LineEdit" parent="SettingsScroll/SettingsList/RoomInfoSection/PasswordRow"]
-layout_mode = 2
+[node name="PasswordEdit" type="LineEdit" parent="SettingsScroll/SettingsList/RoomInfoSection/PasswordRow" unique_id=39617508]
 custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
 placeholder_text = "留空＝公開房（4 位數字）"
 max_length = 4
 virtual_keyboard_enabled = false
 
-[node name="ConnectionAddressRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection"]
+[node name="ConnectionAddressRow" type="HBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=1974951078]
 visible = false
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/ConnectionAddressRow"]
+[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection/ConnectionAddressRow" unique_id=1285139197]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 40
+autowrap_mode = 2
 text = "連線位址"
 
-[node name="ConnectionAddressEdit" type="LineEdit" parent="SettingsScroll/SettingsList/RoomInfoSection/ConnectionAddressRow"]
-layout_mode = 2
+[node name="ConnectionAddressEdit" type="LineEdit" parent="SettingsScroll/SettingsList/RoomInfoSection/ConnectionAddressRow" unique_id=704953995]
 custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
 editable = false
 virtual_keyboard_enabled = false
 
-[node name="PlayerListLabel" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "玩家列表"
+[node name="PlayerListLabel" type="Label" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=109691636]
 modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = "玩家列表"
 
-[node name="PlayerListContent" type="VBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection"]
+[node name="PlayerListContent" type="VBoxContainer" parent="SettingsScroll/SettingsList/RoomInfoSection" unique_id=1048659824]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BattleRulesTitle" type="Label" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "對戰規則"
-modulate = Color(1, 1, 1, 0.6)
-
-[node name="AssistGhostRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/AssistGhostRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "輔助瞄準（顯示落點殘影）"
-
-[node name="AssistGhostToggle" type="CheckButton" parent="SettingsScroll/SettingsList/AssistGhostRow"]
-layout_mode = 2
-
-[node name="TimeAccelerationRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/TimeAccelerationRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "時間加速（隨時間自動變快）"
-
-[node name="TimeAccelerationToggle" type="CheckButton" parent="SettingsScroll/SettingsList/TimeAccelerationRow"]
-layout_mode = 2
-
-[node name="RoundsToWinRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RoundsToWinRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "幾回合勝利"
-
-[node name="RoundsToWinOption" type="OptionButton" parent="SettingsScroll/SettingsList/RoundsToWinRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
-
-[node name="DamageRatioRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/DamageRatioRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "傷害倍率"
-
-[node name="DamageRatioOption" type="OptionButton" parent="SettingsScroll/SettingsList/DamageRatioRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
-
-[node name="TargetedAttackRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/TargetedAttackRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "指定目標攻擊（觸控選目標）"
-
-[node name="TargetedAttackToggle" type="CheckButton" parent="SettingsScroll/SettingsList/TargetedAttackRow"]
-layout_mode = 2
-
-[node name="SettlementSecondsRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/SettlementSecondsRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "結算間隔（秒）"
-
-[node name="SettlementSecondsSpin" type="SpinBox" parent="SettingsScroll/SettingsList/SettlementSecondsRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(160, 0)
-min_value = 10.0
-max_value = 120.0
-step = 5.0
-value = 30.0
-
-[node name="GarbageCapRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/GarbageCapRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "限制垃圾行上限"
-
-[node name="GarbageCapToggle" type="CheckButton" parent="SettingsScroll/SettingsList/GarbageCapRow"]
-layout_mode = 2
-
-[node name="GarbageCapLinesRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/GarbageCapLinesRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "垃圾行上限（行）"
-
-[node name="GarbageCapLinesSpin" type="SpinBox" parent="SettingsScroll/SettingsList/GarbageCapLinesRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(160, 0)
-min_value = 1.0
-max_value = 20.0
-step = 1.0
-value = 5.0
-
-[node name="RandomPieceRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/RandomPieceRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "隨機下落方塊（每人各自獨立隨機）"
-
-[node name="RandomPieceToggle" type="CheckButton" parent="SettingsScroll/SettingsList/RandomPieceRow"]
-layout_mode = 2
-
-[node name="AiLevelRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/AiLevelRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "AI 等級（單人遊玩用）"
-
-[node name="AiLevelOption" type="OptionButton" parent="SettingsScroll/SettingsList/AiLevelRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(220, 0)
-
-[node name="SingleLineAttackRow" type="HBoxContainer" parent="SettingsScroll/SettingsList"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsScroll/SettingsList/SingleLineAttackRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 26
-text = "清 1 行也算攻擊力（反敗為勝）"
-
-[node name="SingleLineAttackToggle" type="CheckButton" parent="SettingsScroll/SettingsList/SingleLineAttackRow"]
-layout_mode = 2
-
-[node name="StatusLabel" type="Label" parent="."]
-offset_left = 60.0
-offset_top = 1710.0
-offset_right = 1020.0
-offset_bottom = 1760.0
-theme_override_font_sizes/font_size = 20
+[node name="StatusLabel" type="Label" parent="." unique_id=118582142]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -480.0
+offset_top = -246.0
+offset_right = 480.0
+offset_bottom = -191.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="BackButton" type="Button" parent="."]
-offset_left = 60.0
-offset_top = 1780.0
-offset_right = 500.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+[node name="BackButton" type="Button" parent="." unique_id=1668317927]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -454.0
+offset_top = -178.0
+offset_right = -14.0
+offset_bottom = -90.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "返回"
 
 [node name="ReadyButton" type="Button" parent="."]
 visible = false
-offset_left = 580.0
-offset_top = 1780.0
-offset_right = 1020.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -178.0
+offset_right = 450.0
+offset_bottom = -90.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "準備"
 
-[node name="NextButton" type="Button" parent="."]
-offset_left = 580.0
-offset_top = 1780.0
-offset_right = 1020.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
-text = "下一步：分隊"
+[node name="NextButton" type="Button" parent="." unique_id=1283919980]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -178.0
+offset_right = 450.0
+offset_bottom = -90.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
+text = "下一步"

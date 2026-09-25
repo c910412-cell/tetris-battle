@@ -1,81 +1,108 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b3dlee2pcadca"]
 
-[node name="ProfileScreenLayoutPortrait" type="Control"]
-mouse_filter = 2
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="ProfileScreenLayoutPortrait" type="Control" unique_id=1565483513]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 1080.0
 offset_bottom = 1920.0
+mouse_filter = 2
 
-[node name="FrameGuide" type="ReferenceRect" parent="."]
-editor_only = true
+[node name="FrameGuide" type="ReferenceRect" parent="." unique_id=241393526]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.3, 0.9, 1, 0.7)
 border_width = 4.0
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="TitleLabel" type="Label" parent="." unique_id=738013496]
+layout_mode = 0
 offset_left = 60.0
 offset_top = 80.0
 offset_right = 700.0
 offset_bottom = 150.0
-theme_override_font_sizes/font_size = 44
+theme_override_font_sizes/font_size = 110
 text = "個人資料"
 
-[node name="AvatarPreview" type="TextureRect" parent="."]
+[node name="AvatarPreview" type="TextureRect" parent="." unique_id=827535324]
+layout_mode = 0
 offset_left = 420.0
-offset_top = 220.0
+offset_top = 274.0
 offset_right = 660.0
-offset_bottom = 460.0
+offset_bottom = 514.0
 expand_mode = 1
 stretch_mode = 5
 
-[node name="NameEdit" type="LineEdit" parent="."]
+[node name="NameEdit" type="LineEdit" parent="." unique_id=1164852512]
+layout_mode = 0
 offset_left = 190.0
-offset_top = 500.0
+offset_top = 554.0
 offset_right = 890.0
-offset_bottom = 570.0
-theme_override_font_sizes/font_size = 30
-max_length = 12
-alignment = 1
+offset_bottom = 624.0
+theme_override_font_sizes/font_size = 40
 placeholder_text = "輸入名稱"
+alignment = 1
+max_length = 12
 
-[node name="AvatarSectionLabel" type="Label" parent="."]
+[node name="AvatarSectionLabel" type="Label" parent="." unique_id=1639098478]
+layout_mode = 0
 offset_left = 60.0
-offset_top = 640.0
+offset_top = 694.0
 offset_right = 700.0
-offset_bottom = 700.0
-theme_override_font_sizes/font_size = 26
+offset_bottom = 754.0
+theme_override_font_sizes/font_size = 40
 text = "選擇頭貼"
 
-[node name="AvatarGrid" type="GridContainer" parent="."]
+[node name="AvatarGrid" type="GridContainer" parent="." unique_id=218068623]
+layout_mode = 0
 offset_left = 60.0
-offset_top = 700.0
+offset_top = 754.0
 offset_right = 1020.0
-offset_bottom = 1000.0
+offset_bottom = 1054.0
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
 
-[node name="AchievementsSectionLabel" type="Label" parent="."]
+[node name="AchievementsSectionLabel" type="Label" parent="." unique_id=1109583613]
+layout_mode = 0
 offset_left = 60.0
-offset_top = 1040.0
+offset_top = 1094.0
 offset_right = 700.0
-offset_bottom = 1100.0
-theme_override_font_sizes/font_size = 26
+offset_bottom = 1154.0
+theme_override_font_sizes/font_size = 40
 text = "成就"
 
-[node name="AchievementsLabel" type="Label" parent="."]
+[node name="AchievementsLabel" type="Label" parent="." unique_id=1820697074]
+layout_mode = 0
 offset_left = 60.0
-offset_top = 1100.0
+offset_top = 1154.0
 offset_right = 1020.0
-offset_bottom = 1180.0
-theme_override_font_sizes/font_size = 24
+offset_bottom = 1234.0
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 40
 text = "敬請期待"
 
-[node name="CloseButton" type="Button" parent="."]
-offset_left = 60.0
-offset_top = 1780.0
-offset_right = 500.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+[node name="CloseButton" type="Button" parent="." unique_id=825134528]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -184.0
+offset_right = 220.0
+offset_bottom = -96.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "返回"

@@ -41,7 +41,9 @@ var right: float = 0.0
 var bottom: float = 0.0
 
 var _registered_controls: Array[Control] = []
+var _inset_controls: Array[Control] = []
 var _backdrop_layers: Array[CanvasLayer] = []
+var _inset_backdrop_roots: Array[Control] = []
 ## key=被排除的節點,value=它註冊當下的原始 position——見 exempt_from_
 ## translation() 的說明。
 var _exempt_original_positions: Dictionary = {}
@@ -65,6 +67,7 @@ func _refresh() -> void:
 		bottom = 0.0
 	safe_area_changed.emit(left, top, right, bottom)
 	_apply_registered_controls()
+	_apply_inset_controls()
 	_apply_exempt_controls()
 
 ## 呼叫端（例如 Battle.gd）在 _ready() 把自己版面的最外層節點（例如
@@ -146,6 +149,76 @@ func _position_edge_strips(rects: Array) -> void:
 ## 整塊往右下移動，不影響子節點的相對位置。
 func _position_control(control: Control) -> void:
 	control.position = Vector2(left, top)
+
+## 2026-09-25 新增：Lobby/Settings/MultiplayerLobby 這些選單畫面的
+## PortraitLayout 跟 Battle.tscn 不是同一種排版方式——這些是「錨點撐滿整個
+## 父層」（anchor 0,0,1,1），視窗多大它就多大，不是 Battle 那種固定
+## 1080x1920、靠 position 整塊平移的做法。實測過：對這種撐滿型節點呼叫
+## register_control()（設 .position）幾乎沒有視覺效果——因為錨點右/下都
+## 釘死在父層邊緣，只調 position 只會在錨點允許的範圍內牽動左上角一點點，
+## 右/下邊緣完全不會跟著內縮。改成直接調整四邊 offset：offset_left=+left、
+## offset_top=+top、offset_right=-right、offset_bottom=-bottom，把整個
+## 可用矩形往內縮，撐滿型底下的子節點（它們的錨點是相對這個矩形算的）就會
+## 自動落在縮小後的安全範圍內，效果上等同於這塊區域本身變小了。
+##
+## 2026-09-25 修正（第一版）：黑色背景補丁原本想跟 register_control() 共用
+## _ensure_backdrop()（祖父層 + layer=-10 CanvasLayer），但那是 Battle/Board
+## 專用的考量（棋盤格子是 Node2D._draw() 畫的、不在任何 CanvasLayer 底下，
+## 要墊在 BoardLayer 這個 CanvasLayer 之外才不會蓋到棋盤）。
+##
+## 2026-09-25 修正（第二版，取代第一版）：改成「直接父層」+ 仍然用
+## layer=-10 CanvasLayer 那版，實機測試後發現還是沒有正確顯示——這些選單
+## 對話框（Settings/RoomBattleSettings/TeamSelect/ProfileScreen/
+## MultiplayerLobby/Lobby）每個都自己有一塊滿版不透明的「Background」
+## ColorRect（跟 PortraitLayout 同一層的手足節點），而 CanvasLayer 的 layer
+## 排序是「跨整個 viewport 的全域排序」，不受巢狀在哪個節點底下影響——
+## layer=-10 永遠比這些畫面自己這層（沒特別設 layer、預設值）還低，等於
+## 永遠畫在 Background 底下，被完全蓋住，跟擺在祖父層還是父層無關，問題
+## 出在「用 CanvasLayer」這個做法本身，對這種有滿版不透明背景的畫面用不上。
+## 改成完全不用 CanvasLayer，直接塞 4 個 ColorRect 當普通子節點，用
+## host.move_child() 插在 Background 跟 PortraitLayout 中間（一般 Control
+## 手足節點是照樹狀順序畫、後面蓋前面，插在這兩者中間就會「蓋在 Background
+## 上面、被 PortraitLayout 蓋住」，正是要的效果）。這幾個對話框的節點順序
+## 固定是 Background、PortraitLayout、LandscapeLayout（見各自 .tscn），
+## control.get_index() 抓到的就是 PortraitLayout 當下的索引，插在那個位置
+## 剛好卡在 Background 之後、PortraitLayout 之前。
+func register_inset_control(control: Control) -> void:
+	_ensure_inset_backdrop(control)
+	if control not in _inset_controls:
+		_inset_controls.append(control)
+	_position_inset_control(control)
+
+func _ensure_inset_backdrop(control: Control) -> void:
+	var host := control.get_parent()
+	if host == null or host.has_node(_BACKDROP_NAME):
+		return
+	var backdrop_root := Control.new()
+	backdrop_root.name = _BACKDROP_NAME
+	backdrop_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	host.add_child(backdrop_root)
+	host.move_child(backdrop_root, control.get_index())
+	for i in range(4):
+		var rect := ColorRect.new()
+		rect.color = Color.BLACK
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		backdrop_root.add_child(rect)
+	_inset_backdrop_roots.append(backdrop_root)
+	_position_edge_strips(backdrop_root.get_children())
+
+func _apply_inset_controls() -> void:
+	_inset_controls = _inset_controls.filter(func(c): return is_instance_valid(c))
+	for control in _inset_controls:
+		_position_inset_control(control)
+	_inset_backdrop_roots = _inset_backdrop_roots.filter(func(r): return is_instance_valid(r))
+	for backdrop_root in _inset_backdrop_roots:
+		_position_edge_strips(backdrop_root.get_children())
+
+func _position_inset_control(control: Control) -> void:
+	control.offset_left = left
+	control.offset_top = top
+	control.offset_right = -right
+	control.offset_bottom = -bottom
 
 ## 2026-09-25 新增：使用者要求操控按鈕（移動/旋轉那些）「拆開」，不要跟著
 ## 整份版面一起被 safe area 往下推——這些按鈕是 register_control() 那個

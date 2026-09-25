@@ -1,138 +1,140 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dgoekf05dji43"]
 
-[node name="OpponentSlots3" type="Control"]
-mouse_filter = 2
+[node name="OpponentSlots3" type="Control" unique_id=860010146]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 160.0
 offset_bottom = 900.0
-
-[node name="Slot1" type="Control" parent="."]
 mouse_filter = 2
+
+[node name="Slot1" type="Control" parent="." unique_id=1971304432]
+anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 0.3333
 offset_bottom = -8.0
+mouse_filter = 2
 
-[node name="PanelAspect" type="AspectRatioContainer" parent="Slot1"]
+[node name="PanelAspect" type="AspectRatioContainer" parent="Slot1" unique_id=81984029]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 ratio = 0.56
 
-[node name="PanelContent" type="Control" parent="Slot1/PanelAspect"]
+[node name="PanelContent" type="Control" parent="Slot1/PanelAspect" unique_id=1418723650]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot1/PanelAspect/PanelContent"]
-editor_only = true
+[node name="Placeholder" type="ReferenceRect" parent="Slot1/PanelAspect/PanelContent" unique_id=2093494059]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
 
-[node name="NameLabel" type="Label" parent="Slot1/PanelAspect/PanelContent"]
-anchors_preset = 10
+[node name="NameLabel" type="Label" parent="Slot1/PanelAspect/PanelContent" unique_id=102057281]
+layout_mode = 0
 anchor_right = 1.0
 offset_bottom = 20.0
 grow_horizontal = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 35
 text = "玩家名稱"
 horizontal_alignment = 1
 
-[node name="GarbageBarAnchor" type="Control" parent="Slot1/PanelAspect/PanelContent"]
-anchors_preset = 4
-anchor_top = 0.0
+[node name="GarbageBarAnchor" type="Control" parent="Slot1/PanelAspect/PanelContent" unique_id=1203690065]
+anchors_preset = 0
 anchor_bottom = 1.0
 offset_right = 8.0
 mouse_filter = 2
 
-[node name="Slot2" type="Control" parent="."]
-mouse_filter = 2
+[node name="Slot2" type="Control" parent="." unique_id=152839780]
+anchors_preset = 0
 anchor_top = 0.3333
 anchor_right = 1.0
 anchor_bottom = 0.6667
 offset_top = 4.0
 offset_bottom = -4.0
+mouse_filter = 2
 
-[node name="PanelAspect" type="AspectRatioContainer" parent="Slot2"]
+[node name="PanelAspect" type="AspectRatioContainer" parent="Slot2" unique_id=1732309768]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 ratio = 0.56
 
-[node name="PanelContent" type="Control" parent="Slot2/PanelAspect"]
+[node name="PanelContent" type="Control" parent="Slot2/PanelAspect" unique_id=63215914]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot2/PanelAspect/PanelContent"]
-editor_only = true
+[node name="Placeholder" type="ReferenceRect" parent="Slot2/PanelAspect/PanelContent" unique_id=673397333]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
 
-[node name="NameLabel" type="Label" parent="Slot2/PanelAspect/PanelContent"]
-anchors_preset = 10
+[node name="NameLabel" type="Label" parent="Slot2/PanelAspect/PanelContent" unique_id=142608971]
+layout_mode = 0
 anchor_right = 1.0
 offset_bottom = 20.0
 grow_horizontal = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 35
 text = "玩家名稱"
 horizontal_alignment = 1
 
-[node name="GarbageBarAnchor" type="Control" parent="Slot2/PanelAspect/PanelContent"]
-anchors_preset = 4
-anchor_top = 0.0
+[node name="GarbageBarAnchor" type="Control" parent="Slot2/PanelAspect/PanelContent" unique_id=1213949179]
+anchors_preset = 0
 anchor_bottom = 1.0
 offset_right = 8.0
 mouse_filter = 2
 
-[node name="Slot3" type="Control" parent="."]
-mouse_filter = 2
+[node name="Slot3" type="Control" parent="." unique_id=151901356]
+anchors_preset = 0
 anchor_top = 0.6667
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = 8.0
+mouse_filter = 2
 
-[node name="PanelAspect" type="AspectRatioContainer" parent="Slot3"]
+[node name="PanelAspect" type="AspectRatioContainer" parent="Slot3" unique_id=727352631]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 ratio = 0.56
 
-[node name="PanelContent" type="Control" parent="Slot3/PanelAspect"]
+[node name="PanelContent" type="Control" parent="Slot3/PanelAspect" unique_id=1004749343]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot3/PanelAspect/PanelContent"]
-editor_only = true
+[node name="Placeholder" type="ReferenceRect" parent="Slot3/PanelAspect/PanelContent" unique_id=695963786]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
 
-[node name="NameLabel" type="Label" parent="Slot3/PanelAspect/PanelContent"]
-anchors_preset = 10
+[node name="NameLabel" type="Label" parent="Slot3/PanelAspect/PanelContent" unique_id=2027971532]
+layout_mode = 0
 anchor_right = 1.0
 offset_bottom = 20.0
 grow_horizontal = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 35
 text = "玩家名稱"
 horizontal_alignment = 1
 
-[node name="GarbageBarAnchor" type="Control" parent="Slot3/PanelAspect/PanelContent"]
-anchors_preset = 4
-anchor_top = 0.0
+[node name="GarbageBarAnchor" type="Control" parent="Slot3/PanelAspect/PanelContent" unique_id=908294381]
+anchors_preset = 0
 anchor_bottom = 1.0
 offset_right = 8.0
 mouse_filter = 2

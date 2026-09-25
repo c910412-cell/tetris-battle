@@ -1,75 +1,139 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dvp3r7h3gwfh2"]
 
-[node name="TeamSelectLayoutPortrait" type="Control"]
-mouse_filter = 2
+[sub_resource type="StyleBoxFlat" id="ButtonStyleNormal"]
+bg_color = Color(0.06879827, 0.06879828, 0.06879828, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="TeamSelectLayoutPortrait" type="Control" unique_id=1028826569]
+layout_mode = 3
+anchors_preset = 0
 offset_right = 1080.0
 offset_bottom = 1920.0
+mouse_filter = 2
 
-[node name="FrameGuide" type="ReferenceRect" parent="."]
-editor_only = true
+[node name="FrameGuide" type="ReferenceRect" parent="." unique_id=405759589]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 border_color = Color(0.3, 0.9, 1, 0.7)
 border_width = 4.0
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="TitleLabel" type="Label" parent="." unique_id=763251659]
+layout_mode = 1
 offset_left = 60.0
 offset_top = 60.0
 offset_right = 600.0
 offset_bottom = 130.0
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 110
 text = "分隊"
 
-[node name="HintLabel" type="Label" parent="."]
+[node name="HintLabel" type="Label" parent="." unique_id=1955344248]
+layout_mode = 1
 offset_left = 60.0
-offset_top = 140.0
+offset_top = 226.0
 offset_right = 1020.0
-offset_bottom = 240.0
-theme_override_font_sizes/font_size = 20
+offset_bottom = 466.0
+theme_override_font_sizes/font_size = 40
+text = "點格子加入該隊，
+再點一次自己所在的格子可以退出，
+點別隊的格子可以直接換隊。
+每隊最多 3 人。"
 autowrap_mode = 2
-text = "點格子加入該隊，再點一次自己所在的格子可以退出，點別隊的格子可以直接換隊。每隊最多 3 人。"
 
-[node name="TeamGrid" type="GridContainer" parent="."]
-offset_left = 60.0
-offset_top = 260.0
-offset_right = 1020.0
-offset_bottom = 760.0
-columns = 4
+[node name="TeamGrid" type="GridContainer" parent="." unique_id=2087493099]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -250.0
+offset_right = 480.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
+columns = 4
 
-[node name="StatusLabel" type="Label" parent="."]
-offset_left = 60.0
-offset_top = 800.0
-offset_right = 1020.0
-offset_bottom = 860.0
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 1
+[node name="StatusLabel" type="Label" parent="." unique_id=2093930933]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -480.0
+offset_top = -265.0
+offset_right = 480.0
+offset_bottom = -205.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
 text = "等待所有玩家選好隊伍…"
+horizontal_alignment = 1
+autowrap_mode = 2
 
-[node name="BackButton" type="Button" parent="."]
-offset_left = 60.0
-offset_top = 1780.0
-offset_right = 520.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+[node name="BackButton" type="Button" parent="." unique_id=51417062]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -476.0
+offset_top = -169.0
+offset_right = -16.0
+offset_bottom = -81.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "返回"
 
-[node name="StartButton" type="Button" parent="."]
-offset_left = 560.0
-offset_top = 1780.0
-offset_right = 1020.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+[node name="StartButton" type="Button" parent="." unique_id=77625034]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -168.0
+offset_right = 476.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 disabled = true
 text = "開始比賽"
 
-[node name="ReadyButton" type="Button" parent="."]
+[node name="ReadyButton" type="Button" parent="." unique_id=295872401]
 visible = false
-offset_left = 560.0
-offset_top = 1780.0
-offset_right = 1020.0
-offset_bottom = 1868.0
-theme_override_font_sizes/font_size = 26
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 17.0
+offset_top = -168.0
+offset_right = 477.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("ButtonStyleNormal")
+theme_override_styles/pressed = SubResource("ButtonStyleNormal")
+theme_override_styles/hover = SubResource("ButtonStyleNormal")
 text = "準備"

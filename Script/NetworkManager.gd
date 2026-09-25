@@ -39,6 +39,18 @@ signal room_join_rejected(reason: String)
 ## 既有的「整個回大廳」邏輯）是兩種不同情境，見 _on_server_disconnected()
 ## 的說明。
 signal kicked_from_room(reason: String)
+## 2026-09-25：房間設定（RoomBattleSettings.tscn）→ 對戰規則（BattleRules.tscn）
+## 這一步是疊加畫面切換,不是 change_scene_to_file,所以不能像
+## advance_to_team_select() 那樣自己在 RPC handler 裡直接切場景——改成發這個
+## 訊號,RoomBattleSettings.gd 訂閱後自己做「疊加 BattleRules.tscn、
+## queue_free() 自己」那個 overlay 慣例動作。房主/client 都會收到（RPC 是
+## call_local）,行為上等同「大家一起被帶去對戰規則畫面」,跟原本合併成一頁
+## 時「加入方要等房主按開始」的規則一致——加入方不能自己提前跳過去。
+signal battle_rules_advance_requested
+## return_to_room_info() 的訊號版——房主在對戰規則畫面按「返回」時，大家
+## （含房主自己）都會收到，各自把 BattleRules.tscn 疊層換回
+## RoomBattleSettings.tscn，見 return_to_room_info() 的說明。
+signal room_info_return_requested
 ## 對戰中（_match_started==true）有人斷線——只有 HOST_PEER_ID 收得到
 ## peer_disconnected 訊號，所以這個訊號只會在真正的伺服器那台裝置上發出。
 ## Script/BattleMatchSync.gd 監聽這個訊號去標記 BattleParticipant.
@@ -779,6 +791,81 @@ func _advance_to_team_select() -> void:
 	get_tree().change_scene_to_file("res://Scenes/TeamSelect.tscn")
 
 
+## 房間設定畫面「下一步」的多人版本——只有房主能按（跟
+## advance_to_team_select() 同一套「client 請求→host 驗證→host 廣播」慣例），
+## 加入方看到的是唯讀狀態、要等房主按下去才會一起被帶去對戰規則畫面，不能
+## 自己提前跳過去。
+func advance_to_battle_rules() -> void:
+	if multiplayer.get_unique_id() != room_owner_peer_id:
+		return
+	if multiplayer.get_unique_id() == HOST_PEER_ID:
+		_do_advance_to_battle_rules()
+	else:
+		_request_advance_to_battle_rules.rpc_id(HOST_PEER_ID)
+
+
+@rpc("any_peer", "reliable")
+func _request_advance_to_battle_rules() -> void:
+	if multiplayer.get_unique_id() != HOST_PEER_ID:
+		return  # 防呆：只有伺服器本人才會真的受理
+	if multiplayer.get_remote_sender_id() != room_owner_peer_id:
+		return  # 防呆：只有目前認領到房主身分的那個人送的請求才算數
+	_do_advance_to_battle_rules()
+
+
+func _do_advance_to_battle_rules() -> void:
+	_advance_to_battle_rules.rpc()
+
+
+## call_local——房主自己也走這條路徑，不用另外維護一份重複邏輯。這裡不能
+## 直接切場景/操作節點（這個檔案不知道 RoomBattleSettings.tscn 的節點結構），
+## 改發訊號讓畫面自己處理，見 battle_rules_advance_requested 的說明。
+@rpc("authority", "call_local", "reliable")
+func _advance_to_battle_rules() -> void:
+	battle_rules_advance_requested.emit()
+
+
+## advance_to_battle_rules() 的反方向——只有房主在對戰規則畫面按「返回」能
+## 觸發，帶大家一起回到房間設定畫面（跟 return_to_room_settings() 不一樣：
+## 那個是分隊畫面按返回用的，會整個 change_scene_to_file 回
+## MultiplayerLobby.tscn 當作新的場景根節點；這裡房間設定/對戰規則兩個
+## 畫面本來就都疊在同一個還活著的 MultiplayerLobby.tscn 之上，只是把
+## BattleRules.tscn 疊層換回 RoomBattleSettings.tscn，不需要真的切場景）。
+## 使用者要求：回到房間設定代表要重新走一次「加入方按準備→房主按下一步」
+## 流程，所以順便把 _peer_ready 清空、廣播出去,跟 _do_advance_to_team_select()
+## 清 _peer_ready 的道理一樣。
+func return_to_room_info() -> void:
+	if multiplayer.get_unique_id() != room_owner_peer_id:
+		return
+	if multiplayer.get_unique_id() == HOST_PEER_ID:
+		_do_return_to_room_info()
+	else:
+		_request_return_to_room_info.rpc_id(HOST_PEER_ID)
+
+
+@rpc("any_peer", "reliable")
+func _request_return_to_room_info() -> void:
+	if multiplayer.get_unique_id() != HOST_PEER_ID:
+		return  # 防呆：只有伺服器本人才會真的受理
+	if multiplayer.get_remote_sender_id() != room_owner_peer_id:
+		return  # 防呆：只有目前認領到房主身分的那個人送的請求才算數
+	_do_return_to_room_info()
+
+
+func _do_return_to_room_info() -> void:
+	for peer_id in _peer_ready:
+		_peer_ready[peer_id] = false
+	_broadcast_room_state()
+	_return_to_room_info.rpc()
+
+
+## call_local——房主自己也走這條路徑，不用另外維護一份重複邏輯。跟
+## _advance_to_battle_rules() 一樣改發訊號讓畫面自己處理。
+@rpc("authority", "call_local", "reliable")
+func _return_to_room_info() -> void:
+	room_info_return_requested.emit()
+
+
 ## 2026-09-23 使用者需求：分隊畫面的「返回」應該只有房主能按，而且要帶大家
 ## 一起回到房間設定畫面（原本 TeamSelect.gd 的返回鈕是純本機動作，誰都能按、
 ## 也只有自己切場景,其他人卡在分隊畫面看不到房主在調設定）——跟
@@ -819,8 +906,22 @@ func _do_return_to_room_settings() -> void:
 
 
 ## call_local——房主自己也走這條路徑切場景，不用另外維護一份重複邏輯。
+## 2026-09-25 使用者回報：分隊畫面（TeamSelect.tscn）按返回，原本會落地在
+## 「房間設定」（只剩房間資訊那個窄畫面）,但分隊是從「對戰規則」
+## （BattleRules.tscn）按「進入分隊」過去的,對稱的返回應該退回對戰規則
+## 才對——退兩層跳過對戰規則、直接落地房間設定，會讓房主搞不清楚自己在
+## 哪一層,誤以為要重新開房,反而在還沒真的斷線的情況下又按了一次開房
+## （host_game() 偵測到已經在跑一個 ENet 伺服器會失敗,見該函式說明),
+## 使用者描述的「無法開房」就是這樣來的。修法：MultiplayerLobby.tscn 這次
+## 重新整個載入時,要開的是 BattleRules.tscn 疊層,不是 RoomBattleSettings.
+## tscn——用這個旗標告訴 MultiplayerLobby.gd._ready()「這次是從分隊退回來
+## 的,該開哪一個」，開完就重設掉，不影響「本地連線」正常開房/加入房間那
+## 條路徑（那條路徑這個旗標永遠是 false,行為不變)。
+var pending_reopen_battle_rules: bool = false
+
 @rpc("authority", "call_local", "reliable")
 func _return_to_room_settings() -> void:
+	pending_reopen_battle_rules = true
 	get_tree().change_scene_to_file(MULTIPLAYER_LOBBY_SCENE_PATH)
 
 

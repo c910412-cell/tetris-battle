@@ -33,8 +33,18 @@ var move_repeat_sec: float = 0.03
 ## 可以離線單獨測試，見該檔案開頭的說明）。
 var soft_drop_interval_sec: float = 0.08
 
+## 2026-09-25 新增：自動轉向開關，預設關閉——關閉時鎖定直向（螢幕不會因為
+## 使用者轉動裝置就跟著轉），開啟才恢復手機感應器自由旋轉。這裡管的是
+## 「作業系統層級」的螢幕方向（DisplayServer.screen_set_orientation()），
+## 跟 Battle.gd/Board.gd 等畫面自己依 viewport 寬高比切換 Portrait/
+## Landscape 版面（_apply_orientation_layout()）是兩件不同的事——後者只要
+## 螢幕真的變成橫的/直的都還是會切換版面，這個開關只決定「螢幕會不會因為
+## 裝置轉動而變成橫的/直的」。
+var auto_rotate_enabled: bool = false
+
 func _ready() -> void:
 	_load()
+	_apply_auto_rotate()
 
 func set_vibration_enabled(enabled: bool) -> void:
 	vibration_enabled = enabled
@@ -61,6 +71,27 @@ func set_soft_drop_interval_sec(value: float) -> void:
 	_save()
 	settings_changed.emit()
 
+func set_auto_rotate_enabled(enabled: bool) -> void:
+	auto_rotate_enabled = enabled
+	_save()
+	_apply_auto_rotate()
+	settings_changed.emit()
+
+## 桌機沒有「轉動裝置」這回事，DisplayServer.screen_set_orientation() 在
+## 桌機上是安靜的 no-op，但還是照平台判斷一次，跟 vibrate() 同一個習慣，
+## 不要假設呼叫端會自己判斷平台。關閉時鎖定直向（SCREEN_ORIENTATION_
+## PORTRAIT）——這個專案的基準版面就是直向設計（project.godot 的
+## viewport_width/height 是 1080x1920），鎖定時選它當固定方向；開啟則還原
+## 成 project.godot 原本設定的 SENSOR（跟著裝置感應器自由轉，四個方向都
+## 可以)。
+func _apply_auto_rotate() -> void:
+	if not (OS.get_name() in ["Android", "iOS"]):
+		return
+	if auto_rotate_enabled:
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR)
+	else:
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+
 ## 震動回饋的統一入口——關掉開關或在桌機上跑都直接安靜跳過，呼叫端不用自己
 ## 判斷平台/開關狀態。
 func vibrate(duration_msec: int = 40) -> void:
@@ -77,6 +108,7 @@ func _save() -> void:
 	config.set_value("settings", "sound_effects_enabled", sound_effects_enabled)
 	config.set_value("settings", "move_repeat_sec", move_repeat_sec)
 	config.set_value("settings", "soft_drop_interval_sec", soft_drop_interval_sec)
+	config.set_value("settings", "auto_rotate_enabled", auto_rotate_enabled)
 	config.save(SAVE_PATH)
 
 func _load() -> void:
@@ -88,3 +120,4 @@ func _load() -> void:
 	sound_effects_enabled = config.get_value("settings", "sound_effects_enabled", true)
 	move_repeat_sec = config.get_value("settings", "move_repeat_sec", 0.03)
 	soft_drop_interval_sec = config.get_value("settings", "soft_drop_interval_sec", 0.08)
+	auto_rotate_enabled = config.get_value("settings", "auto_rotate_enabled", false)

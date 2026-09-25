@@ -19,6 +19,9 @@ extends Control
 @onready var soft_drop_speed_spin_landscape: SpinBox = $LandscapeLayout/SoftDropSpeedRow/SoftDropSpeedSpin
 @onready var sound_toggle_portrait: CheckButton = $PortraitLayout/SoundRow/SoundToggle
 @onready var sound_toggle_landscape: CheckButton = $LandscapeLayout/SoundRow/SoundToggle
+## 2026-09-25 新增：見 PlayerSettings.auto_rotate_enabled 的說明，預設關閉。
+@onready var auto_rotate_toggle_portrait: CheckButton = $PortraitLayout/AutoRotateRow/AutoRotateToggle
+@onready var auto_rotate_toggle_landscape: CheckButton = $LandscapeLayout/AutoRotateRow/AutoRotateToggle
 @onready var close_button_portrait: Button = $PortraitLayout/CloseButton
 @onready var close_button_landscape: Button = $LandscapeLayout/CloseButton
 
@@ -29,17 +32,26 @@ func _ready() -> void:
 	gesture_toggle_landscape.button_pressed = PlayerSettings.gesture_controls_enabled
 	sound_toggle_portrait.button_pressed = PlayerSettings.sound_effects_enabled
 	sound_toggle_landscape.button_pressed = PlayerSettings.sound_effects_enabled
+	auto_rotate_toggle_portrait.button_pressed = PlayerSettings.auto_rotate_enabled
+	auto_rotate_toggle_landscape.button_pressed = PlayerSettings.auto_rotate_enabled
 	move_speed_spin_portrait.value = PlayerSettings.move_repeat_sec
 	move_speed_spin_landscape.value = PlayerSettings.move_repeat_sec
 	soft_drop_speed_spin_portrait.value = PlayerSettings.soft_drop_interval_sec
 	soft_drop_speed_spin_landscape.value = PlayerSettings.soft_drop_interval_sec
+	## 2026-09-25：SpinBox 顯示的數字是內部一個 LineEdit 子節點畫的，
+	## theme_override_font_sizes/font_size 設在 SpinBox 自己身上不會傳給那個
+	## 內部 LineEdit，要直接對 get_line_edit() 蓋字體大小才會真的變大（跟
+	## RoomBattleSettings.gd 同一個坑）。這裡只處理直向。
+	for spin in [move_speed_spin_portrait, soft_drop_speed_spin_portrait]:
+		spin.get_line_edit().add_theme_font_size_override("font_size", 40)
 
 	# 2026-09-24：這幾個開關本身是 CheckButton（繼承 BaseButton），跟選單按鈕
 	# 共用同一套 connect_button()（接的也是 button_down，按下就有聲音，不用
 	# 等切換完成），開關「這個設定值本身有沒有開」的邏輯不受影響。
 	for toggle in [vibration_toggle_portrait, vibration_toggle_landscape,
 			gesture_toggle_portrait, gesture_toggle_landscape,
-			sound_toggle_portrait, sound_toggle_landscape]:
+			sound_toggle_portrait, sound_toggle_landscape,
+			auto_rotate_toggle_portrait, auto_rotate_toggle_landscape]:
 		SoundEffects.connect_button(toggle)
 	vibration_toggle_portrait.toggled.connect(_on_vibration_toggled)
 	vibration_toggle_landscape.toggled.connect(_on_vibration_toggled)
@@ -47,6 +59,8 @@ func _ready() -> void:
 	gesture_toggle_landscape.toggled.connect(_on_gesture_toggled)
 	sound_toggle_portrait.toggled.connect(_on_sound_toggled)
 	sound_toggle_landscape.toggled.connect(_on_sound_toggled)
+	auto_rotate_toggle_portrait.toggled.connect(_on_auto_rotate_toggled)
+	auto_rotate_toggle_landscape.toggled.connect(_on_auto_rotate_toggled)
 	move_speed_spin_portrait.value_changed.connect(_on_move_speed_changed)
 	move_speed_spin_landscape.value_changed.connect(_on_move_speed_changed)
 	soft_drop_speed_spin_portrait.value_changed.connect(_on_soft_drop_speed_changed)
@@ -58,6 +72,10 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+	## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——這種疊加式選單畫面（撐滿
+	## 整個父層的 PortraitLayout）用 register_inset_control()，不是 Battle/
+	## Board 那種固定尺寸版面用的 register_control()。
+	SafeArea.register_inset_control(portrait_layout)
 
 func _apply_orientation_layout() -> void:
 	var viewport_size := get_viewport_rect().size
@@ -79,6 +97,11 @@ func _on_sound_toggled(pressed: bool) -> void:
 	PlayerSettings.set_sound_effects_enabled(pressed)
 	sound_toggle_portrait.button_pressed = pressed
 	sound_toggle_landscape.button_pressed = pressed
+
+func _on_auto_rotate_toggled(pressed: bool) -> void:
+	PlayerSettings.set_auto_rotate_enabled(pressed)
+	auto_rotate_toggle_portrait.button_pressed = pressed
+	auto_rotate_toggle_landscape.button_pressed = pressed
 
 func _on_move_speed_changed(value: float) -> void:
 	PlayerSettings.set_move_repeat_sec(value)

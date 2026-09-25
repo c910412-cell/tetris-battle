@@ -79,6 +79,9 @@ func _ready() -> void:
 
 	get_viewport().size_changed.connect(_apply_orientation_layout)
 	_apply_orientation_layout()
+	## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——撐滿整個父層的 PortraitLayout
+	## 用 register_inset_control()。
+	SafeArea.register_inset_control(portrait_layout)
 
 ## 房主看得到「開始比賽」（等所有人都分好隊、按過準備才能按）；其他人只
 ## 看得到「準備」（分好隊之後按，跟 RoomBattleSettings.gd 的
@@ -174,6 +177,18 @@ func _build_grid(grid: GridContainer) -> Array:
 			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			name_label.add_theme_font_size_override("font_size", 22)
 			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			## 2026-09-26 使用者回報：分隊格子裡的名字會被切掉——這裡的父容器
+			## content 刻意 clip_contents=true（避免頭貼/名字視覺溢出到隔壁
+			## 格子），名字本身沒有另外處理「太長裝不下」的情況，玩家自訂
+			## 暱稱（ProfileScreen.gd 開放到 12 個字）或比較長的房間玩家名稱
+			## 在窄格子裡就會被 clip_contents 直接硬切掉一部分,看起來像是字
+			## 被吃掉。改成 size_flags_horizontal 明確設 SIZE_FILL（跟著格子
+			## 寬度走,不是縮成文字本身的自然寬度)+ text_overrun_behavior 設
+			## 「裝不下就用…結尾」,裝得下就完整顯示,裝不下也不會看起來像是
+			## 硬生生斷字,而是有省略號提示這裡被截斷了。
+			name_label.size_flags_horizontal = Control.SIZE_FILL
+			name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			name_label.clip_text = true
 			content.add_child(name_label)
 
 			grid.add_child(cell)
@@ -291,7 +306,18 @@ func _refresh_start_button() -> void:
 	var status_text: String
 	if BattleSettings.is_solo_mode:
 		can_start = BattleSettings.has_opponent_for_solo(_local_peer_id)
-		status_text = "可以開始比賽" if can_start else "先分好隊、至少放一個對手（AI）"
+		## 2026-09-25 使用者回報：「（AI）」最後的全形括號在手機上顯示成亂碼——
+		## 這個專案沒有另外指定字型（整個 Scenes/Script 資料夾找不到任何
+		## .ttf/.otf/主題資源），文字全部走 Godot 內建預設字型的自動 fallback。
+		## 全形標點緊接在英文字母後面（"AI）"）是文字排版系統常見的踩坑：
+		## 分詞/分段（script run）判斷有時候會把這個標點跟前面的英文字母
+		## 分在同一段、當成「英文段落」處理，套用的字型因此變成純英文的那個
+		## （沒有全形括號字符），導致顯示成缺字符號/亂碼——同一份文字如果括號
+		## 前後都是中文字（例如「AI 等級（單人遊玩用）」的右括號跟在「用」
+		## 後面）就不會有這個問題,只有「英文字母＋全形標點」這種交界處才會。
+		## 修法：這裡的英文縮寫改用半形括號（"(AI)"），跳開這個交界，不用動到
+		## 全專案字型設定這麼大的變更。
+		status_text = "可以開始比賽" if can_start else "先分好隊、至少放一個對手 (AI)"
 	elif not _is_owner:
 		can_start = false
 		status_text = "已準備，等待房主開始" if _is_ready else "分好隊之後按下「準備」"
@@ -336,9 +362,11 @@ func _on_start_pressed() -> void:
 ## 2026-09-23 修正：多人模式下這顆鈕原本只是本機自己切場景，其他人沒有
 ## 跟著切過去、卡在分隊畫面（房主如果回去調設定，其他人完全看不到）——改叫
 ## NetworkManager.return_to_room_settings()，讓房主之外的人也一起被帶回
-## 房間設定畫面（見該函式的說明）。單機模式沒有連線，維持原本直接切場景。
+## 房間設定畫面（見該函式的說明）。單機模式沒有連線，維持原本直接切場景——
+## 2026-09-25 起單人流程跳過 RoomBattleSettings.tscn（現在只剩房間資訊,
+## 單機用不到),直接回 BattleRules.tscn。
 func _on_back_pressed() -> void:
 	if BattleSettings.is_solo_mode:
-		get_tree().change_scene_to_file("res://Scenes/RoomBattleSettings.tscn")
+		get_tree().change_scene_to_file("res://Scenes/BattleRules.tscn")
 	else:
 		NetworkManager.return_to_room_settings()
