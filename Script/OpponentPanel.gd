@@ -76,6 +76,19 @@ func _draw() -> void:
 	var cell_size := maxf(minf(available.x / TetrisBoard.WIDTH, available.y / TetrisBoard.VISIBLE_HEIGHT), 2.0)
 	var board_size := Vector2(TetrisBoard.WIDTH * cell_size, TetrisBoard.VISIBLE_HEIGHT * cell_size)
 
+	## 2026-09-25 使用者回報名字沒有置中在「盤面+垃圾長條」中間——因為
+	## NameLabel 原本的寬度是跟著它自己的 anchor 撐滿整個 PanelContent
+	## 寬度,但棋盤實際畫出來的寬度常常比 PanelContent 窄（高度優先撐滿時,
+	## 寬度會letterbox留白在右側),名字用 HORIZONTAL_ALIGNMENT_CENTER 置中
+	## 的對象是「NameLabel 自己的寬度」,不是「棋盤實際占用的寬度」,兩個對
+	## 不起來就會看起來偏移。改成每一幀直接把 NameLabel 的水平範圍蓋成
+	## 「垃圾長條+棋盤實際寬度」（bar_width + board_size.x),這樣它內部的
+	## CENTER 對齊就一定準——垂直位置/字體大小還是使用者自己在編輯器調的,
+	## 這裡不動。
+	if _name_label:
+		_name_label.position.x = 0.0
+		_name_label.size.x = bar_width + board_size.x
+
 	TetrisBoardRenderer.draw_board_frame(self, origin, cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, participant.controller.board, origin, cell_size, participant.controller.get_clearing_rows())
 	## 對手是「本機模擬」的（AI，在權威裝置上）才有即時的下落方塊位置可以畫；

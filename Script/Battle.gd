@@ -992,10 +992,12 @@ func _refresh_stars_display() -> void:
 	_populate_stars_row(stars_row_portrait, target_wins)
 	_populate_stars_row(stars_row_landscape, target_wins)
 
-## 每隊生成一組「隊名 Label + 星星 Label」塞進 row（HBoxContainer），兩個
-## Label 字體大小分別讀 row 自己的 name_font_size/star_font_size（見
-## TeamScoreRow.gd）——每次重算都整批清掉重新生成，隊伍數量不多、切換
-## 頻率也不高（開局一次、贏一輪一次），不用做增量更新。
+## 2026-09-25 使用者要求拿掉隊名文字、只留星星（不用粗體）——每隊生成一個
+## 星星 Label 塞進 row（HBoxContainer），字體大小讀 row 自己的
+## star_font_size（見 TeamScoreRow.gd），顏色依隊伍上色跟之前一樣。row 本身
+## 的 separation（見 .tscn）負責隊伍跟隊伍之間的間距，不用另外處理。每次
+## 重算都整批清掉重新生成，隊伍數量不多、切換頻率也不高（開局一次、贏一輪
+## 一次），不用做增量更新。
 func _populate_stars_row(row: TeamScoreRow, target_wins: int) -> void:
 	row.visible = true
 	for child in row.get_children():
@@ -1003,21 +1005,11 @@ func _populate_stars_row(row: TeamScoreRow, target_wins: int) -> void:
 	for team in range(BattleSettings.TEAM_COUNT):
 		if not _team_in_play(team):
 			continue
-		var team_color: Color = BattleSettings.TEAM_COLORS[team]
-		var group := HBoxContainer.new()
-		var name_label := Label.new()
-		name_label.text = BattleSettings.TEAM_NAMES[team]
-		name_label.add_theme_font_size_override("font_size", int(row.name_font_size))
-		name_label.add_theme_color_override("font_color", team_color)
-		name_label.add_theme_font_override("font", _bold_font)
 		var stars_label := Label.new()
 		stars_label.text = _stars_for_team(team, target_wins)
 		stars_label.add_theme_font_size_override("font_size", int(row.star_font_size))
-		stars_label.add_theme_color_override("font_color", team_color)
-		stars_label.add_theme_font_override("font", _bold_font)
-		group.add_child(name_label)
-		group.add_child(stars_label)
-		row.add_child(group)
+		stars_label.add_theme_color_override("font_color", BattleSettings.TEAM_COLORS[team])
+		row.add_child(stars_label)
 
 ## 給單一隊伍的星星字串（"★★☆" 這種），本地玩家的整場摘要
 ## （_build_stars_text()）跟每個對手縮小盤面自己那顆星星提示

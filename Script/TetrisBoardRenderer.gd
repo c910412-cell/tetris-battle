@@ -77,12 +77,12 @@ static func draw_cell_outline(ci: CanvasItem, origin: Vector2, cell_size: float,
 	var pos := origin + Vector2(col, row) * cell_size
 	ci.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(cell_size - 4, cell_size - 4)), Color(color, 0.45), false, 2.0)
 
-## 面板背景（HOLD/NEXT 的白底框）。標題文字（"HOLD"/"NEXT"）2026-09-21 改成
+## 面板背景（HOLD/NEXT 的底框）。標題文字（"HOLD"/"NEXT"）2026-09-21 改成
 ## 場景裡真的 Label 節點（`HoldLabel`/`NextLabel`），使用者自己排位置，這裡
-## 不再用 draw_string 畫死。
+## 不再用 draw_string 畫死。2026-09-25 使用者要求拿掉外框那條細線（自己的
+## 素材圖片本來就沒有這條線），只留純色底。
 static func draw_side_panel_bg(ci: CanvasItem, rect: Rect2) -> void:
 	ci.draw_rect(rect, Color(0.12, 0.12, 0.16), true)
-	ci.draw_rect(rect, Color(0.3, 0.3, 0.35), false, 2.0)
 
 static func draw_side_panel(ci: CanvasItem, rect: Rect2, type: int, mini_cell: float = 16.0, center_offset: Vector2 = Vector2.ZERO) -> void:
 	draw_side_panel_bg(ci, rect)

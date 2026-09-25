@@ -117,7 +117,6 @@ offset_bottom = 100.0
 theme_override_constants/separation = 24
 alignment = 1
 script = ExtResource("16_scorerow")
-name_font_size = 24.0
 star_font_size = 28.0
 
 [node name="StarsIconAnchor" type="ReferenceRect" parent="."]
