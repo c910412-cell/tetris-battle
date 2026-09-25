@@ -493,6 +493,7 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="ColorRectbottom" type="ColorRect" parent="." unique_id=921255826]
+visible = false
 show_behind_parent = true
 layout_mode = 1
 anchors_preset = 7
