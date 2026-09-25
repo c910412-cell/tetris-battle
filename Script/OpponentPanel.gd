@@ -1,21 +1,27 @@
 ## 對戰畫面裡一個對手的縮小版盤面。2026-09-21 起改成塞進 Battle.gd 依對手
 ## 人數（1~3）挑出的 `OpponentSlots1/2/3` 場景裡使用者自己排的 Slot 節點
-## 底下的 `PanelAspect`（AspectRatioContainer，2026-09-25 新增，讓示意框永遠
-## 是正確的棋盤比例，見 OpponentSlots1/2/3.tscn 的說明）——格子大小改成每次
-## `_draw()` 依自己目前的 `size` 動態算，Slot 排多大這裡的棋盤就多大，使用者
-## 換人數版面或拉 Slot 尺寸都不用改這裡的程式。純顯示元件，資料來源是
-## BattleParticipant，戰鬥規則都在 BattleDirector，這裡不判斷任何規則。
+## 底下——格子大小改成每次 `_draw()` 依自己目前的 `size` 動態算，Slot 排多
+## 大這裡的棋盤就多大，使用者換人數版面或拉 Slot 尺寸都不用改這裡的程式。
+## 純顯示元件，資料來源是 BattleParticipant，戰鬥規則都在 BattleDirector，
+## 這裡不判斷任何規則。
 ##
 ## 2026-09-25 使用者要求名字文字改成「示意文字」——原本名字是這裡自己
 ## `draw_string()` 畫死的，字體大小沒地方調。改成跟 HoldLabel/NextLabel
-## 同一套做法：`PanelAspect` 底下多一個真的 `NameLabel` 節點（跟這個
-## OpponentPanel 同一層、共用 AspectRatioContainer 算出來的同一塊區域），
-## 使用者直接在編輯器裡調它的字體大小/位置，這裡只負責每幀把文字內容寫
-## 進去，不再自己畫字——名字預留高度也改成讀 NameLabel 目前的實際大小
-## （跟著使用者調的字體大小走），不再是寫死的 LABEL_HEIGHT。
-## 待定垃圾行點點也比照本地玩家（見 Battle.gd `_draw_pending_garbage_bar()`）
-## 換成長條狀，一樣多一個真的 `GarbageBarAnchor` 節點給使用者調粗細/位置，
-## 這裡讀它目前的寬度當作要幫棋盤讓出多少空間。
+## 同一套做法：場景裡多一個真的 `NameLabel` 節點，使用者直接在編輯器裡調
+## 它的字體大小/位置，這裡只負責每幀把文字內容寫進去，不再自己畫字——
+## 名字預留高度也改成讀 NameLabel 目前的實際大小（跟著使用者調的字體大小
+## 走），不再是寫死的 LABEL_HEIGHT。待定垃圾行點點也比照本地玩家（見
+## Battle.gd `_draw_pending_garbage_bar()`）換成長條狀，一樣多一個真的
+## `GarbageBarAnchor` 節點給使用者調粗細/位置，這裡讀它目前的寬度當作要
+## 幫棋盤讓出多少空間。
+## 這個節點跟 NameLabel/GarbageBarAnchor 是同一層的兄弟節點,見
+## OpponentSlots1/2/3.tscn 裡的 `PanelContent`（純 Control,不是 Container）
+## ——一開始直接放在 PanelAspect（AspectRatioContainer）底下,結果 Container
+## 會整個無視子節點自己的 anchor/offset,NameLabel/GarbageBarAnchor 沒辦法
+## 只當一小條、直接撐滿整個示意框,擠壓到這裡剩下的可用空間趨近於 0
+## （使用者回報「別人盤面變得怪怪的」)——加了 PanelContent 這層之後才修好,
+## 這裡的程式碼本身不用跟著改,因為都是靠 get_parent() 找同層兄弟節點,
+## 父節點換了但層次關係沒變。
 class_name OpponentPanel
 extends Control
 
@@ -58,6 +64,10 @@ func _draw() -> void:
 		return
 	if _name_label:
 		_name_label.text = _label_text()
+		## 2026-09-25 使用者要求名字依隊伍改色（紅隊用紅色等等），跟分隊/
+		## 戰績文字共用同一份 BattleSettings.TEAM_COLORS，顏色定義只放一個
+		## 地方。
+		_name_label.add_theme_color_override("font_color", BattleSettings.TEAM_COLORS[participant.team_index])
 	var label_height := TetrisBoardRenderer.effective_size(_name_label).y if _name_label else FALLBACK_LABEL_HEIGHT
 	var bar_width := TetrisBoardRenderer.effective_size(_garbage_bar_anchor).x if _garbage_bar_anchor else FALLBACK_BAR_WIDTH
 

@@ -238,6 +238,11 @@ var _round_transition_flash_row: int = 0
 ## bo-N 戰績：team_index -> 已經贏的回合數，整場比賽期間持續累加（跨回合
 ## 不歸零，只有整場比賽結束、返回大廳才會消失）。
 var _team_round_wins: Dictionary = {}
+## 2026-09-25 使用者要求分隊文字跟分數/消行/等級這些 HUD 文字都用粗體——
+## Godot 的 Label 沒有內建「粗體」開關，用 FontVariation 包住原本的預設字型
+## 加一點 embolden（假粗體，不用另外準備粗體字型檔），一份共用給所有需要
+## 粗體的 Label 用，不用每個 Label 各自 new 一份。
+var _bold_font: FontVariation
 ## true＝結果畫面按下去要進下一輪；false＝已經整場結束，按下去回大廳。
 var _pending_next_round: bool = false
 
@@ -266,6 +271,12 @@ var _leave_votes: Dictionary = {}
 func _ready() -> void:
 	_local_peer_id = multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
 	_team_round_wins.clear()
+	_bold_font = FontVariation.new()
+	_bold_font.base_font = ThemeDB.fallback_font
+	_bold_font.variation_embolden = 1.2
+	for label in [score_label_portrait, score_label_landscape, lines_label_portrait,
+			lines_label_landscape, level_label_portrait, level_label_landscape]:
+		label.add_theme_font_override("font", _bold_font)
 	SoundEffects.connect_button(return_button_portrait)
 	SoundEffects.connect_button(return_button_landscape)
 	return_button_portrait.pressed.connect(_on_result_button_pressed)
@@ -469,17 +480,17 @@ func _apply_soft_drop_setting() -> void:
 ## 直向/橫向各生成一份 OpponentPanel（不共用同一個節點，切換方向時才不用
 ## 重新生成，只是跟著父節點一起隱藏）。
 func _rebuild_opponent_panels() -> void:
-	## 2026-09-25：Slot 底下現在多了一層固定的 PanelAspect（AspectRatioContainer,
-	## 見 OpponentSlots1/2/3.tscn 的說明——讓使用者排版時對手縮小盤面的示意框
-	## 長度跟著正確比例走,不會過長），只清掉裡面動態生成的 OpponentPanel,
-	## 不要再整個 slot.get_children() 通殺,否則會連 PanelAspect 本身都被
-	## queue_free() 掉,下一輪就找不到節點了。
+	## 2026-09-25：Slot 底下現在多了 PanelAspect（AspectRatioContainer）>
+	## PanelContent（Control）兩層,見 OpponentSlots1/2/3.tscn 的說明——只清掉
+	## PanelContent 裡動態生成的 OpponentPanel,不要整個 slot.get_children()
+	## 通殺,否則會連 PanelAspect/PanelContent 本身都被 queue_free() 掉,下一輪
+	## 就找不到節點了。
 	for slots_group in opponent_slots_portrait + opponent_slots_landscape:
 		for slot in slots_group.get_children():
-			var aspect: Node = slot.get_node_or_null("PanelAspect")
-			if aspect == null:
+			var content: Node = slot.get_node_or_null("PanelAspect/PanelContent")
+			if content == null:
 				continue
-			for child in aspect.get_children():
+			for child in content.get_children():
 				if child is OpponentPanel:
 					child.queue_free()
 	_opponent_panels.clear()
@@ -506,15 +517,22 @@ func _rebuild_opponent_panels() -> void:
 
 func _spawn_opponent_panel(pid: int, slot: Control) -> OpponentPanel:
 	var panel := OpponentPanel.new()
-	## 塞進 PanelAspect（Container）底下，不是塞進 slot 本身——Container 的
-	## 子節點靠 size_flags 撐滿、靠 anchor/offset 沒有用（Container 每幀都會
-	## 重新蓋掉子節點的位置/大小），跟其他 Container 底下的節點同一套做法。
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	## 2026-09-25 修正：一開始直接塞進 PanelAspect（AspectRatioContainer）
+	## 底下、靠 size_flags 撐滿——結果連同一層的 NameLabel/GarbageBarAnchor
+	## 也被塞在這個 Container 下,Container 會整個無視子節點自己的
+	## anchor/offset（一律用 size_flags 決定怎麼撐滿),導致 NameLabel/
+	## GarbageBarAnchor 沒辦法只當「一小條」,直接撐滿整個示意框,擠壓到
+	## OpponentPanel 剩下的可用空間趨近於 0（使用者回報「別人盤面變得怪怪
+	## 的」就是這個）。修法：PanelAspect 底下加一層 PanelContent（純
+	## Control,不是 Container),NameLabel/GarbageBarAnchor 現在掛在
+	## PanelContent 下面用正常 anchor 排版；OpponentPanel 改塞進
+	## PanelContent、用 PRESET_FULL_RECT 填滿（PanelContent 不是 Container,
+	## 這裡改吃 anchor,不是 size_flags）。
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.participant = _director.participants[pid]
 	panel.pid = pid
 	panel.panel_tapped.connect(_on_opponent_panel_tapped)
-	slot.get_node("PanelAspect").add_child(panel)
+	slot.get_node("PanelAspect/PanelContent").add_child(panel)
 	return panel
 
 func _process(delta: float) -> void:
@@ -985,13 +1003,18 @@ func _populate_stars_row(row: TeamScoreRow, target_wins: int) -> void:
 	for team in range(BattleSettings.TEAM_COUNT):
 		if not _team_in_play(team):
 			continue
+		var team_color: Color = BattleSettings.TEAM_COLORS[team]
 		var group := HBoxContainer.new()
 		var name_label := Label.new()
 		name_label.text = BattleSettings.TEAM_NAMES[team]
 		name_label.add_theme_font_size_override("font_size", int(row.name_font_size))
+		name_label.add_theme_color_override("font_color", team_color)
+		name_label.add_theme_font_override("font", _bold_font)
 		var stars_label := Label.new()
 		stars_label.text = _stars_for_team(team, target_wins)
 		stars_label.add_theme_font_size_override("font_size", int(row.star_font_size))
+		stars_label.add_theme_color_override("font_color", team_color)
+		stars_label.add_theme_font_override("font", _bold_font)
 		group.add_child(name_label)
 		group.add_child(stars_label)
 		row.add_child(group)

@@ -17,17 +17,21 @@ anchor_bottom = 1.0
 mouse_filter = 2
 ratio = 0.56
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot1/PanelAspect"]
-editor_only = true
+[node name="PanelContent" type="Control" parent="Slot1/PanelAspect"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot1/PanelAspect/PanelContent"]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
 
-[node name="NameLabel" type="Label" parent="Slot1/PanelAspect"]
-layout_mode = 2
+[node name="NameLabel" type="Label" parent="Slot1/PanelAspect/PanelContent"]
 anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 20.0
@@ -37,8 +41,7 @@ theme_override_font_sizes/font_size = 16
 text = "玩家名稱"
 horizontal_alignment = 1
 
-[node name="GarbageBarAnchor" type="Control" parent="Slot1/PanelAspect"]
-layout_mode = 2
+[node name="GarbageBarAnchor" type="Control" parent="Slot1/PanelAspect/PanelContent"]
 anchors_preset = 4
 anchor_top = 0.0
 anchor_bottom = 1.0
@@ -58,17 +61,21 @@ anchor_bottom = 1.0
 mouse_filter = 2
 ratio = 0.56
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot2/PanelAspect"]
-editor_only = true
+[node name="PanelContent" type="Control" parent="Slot2/PanelAspect"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot2/PanelAspect/PanelContent"]
+editor_only = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
 
-[node name="NameLabel" type="Label" parent="Slot2/PanelAspect"]
-layout_mode = 2
+[node name="NameLabel" type="Label" parent="Slot2/PanelAspect/PanelContent"]
 anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 20.0
@@ -78,8 +85,7 @@ theme_override_font_sizes/font_size = 16
 text = "玩家名稱"
 horizontal_alignment = 1
 
-[node name="GarbageBarAnchor" type="Control" parent="Slot2/PanelAspect"]
-layout_mode = 2
+[node name="GarbageBarAnchor" type="Control" parent="Slot2/PanelAspect/PanelContent"]
 anchors_preset = 4
 anchor_top = 0.0
 anchor_bottom = 1.0
