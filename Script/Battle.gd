@@ -153,10 +153,14 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var next_round_ready_button_landscape: Button = $ResultLayer/LandscapeLayout/ReadyButton
 
 ## 2026-09-22：勝利星星移出結算文字下方的 VBoxContainer，改成場景裡跟
-## HOLD/NEXT 標籤同一套做法的可排版節點（`StarsLabel`），使用者自己排位置、
-## 之後也可以換成圖片素材，不用再靠 VBoxContainer 自動疊在文字下面。
-@onready var stars_label_portrait: Label = $BoardLayer/PortraitLayout/StarsLabel
-@onready var stars_label_landscape: Label = $BoardLayer/LandscapeLayout/StarsLabel
+## HOLD/NEXT 標籤同一套做法的可排版節點，使用者自己排位置、之後也可以換成
+## 圖片素材，不用再靠 VBoxContainer 自動疊在文字下面。
+## 2026-09-25：原本的 `StarsLabel`（單一 Label，每隊一行、直的疊起來）換成
+## `StarsRow`（HBoxContainer + TeamScoreRow.gd），改成每隊一組動態生成的
+## 「隊名 Label + 星星 Label」橫向排在同一條，字體大小各自可調，見
+## TeamScoreRow.gd 的說明跟 _refresh_stars_display() 怎麼用。
+@onready var stars_row_portrait: TeamScoreRow = $BoardLayer/PortraitLayout/StarsRow
+@onready var stars_row_landscape: TeamScoreRow = $BoardLayer/LandscapeLayout/StarsRow
 
 @onready var pause_layer: CanvasLayer = $PauseLayer
 @onready var pause_layout_portrait: Control = $PauseLayer/PortraitLayout
@@ -275,6 +279,19 @@ func _ready() -> void:
 	## 手勢列，先只套用在這個對戰畫面（使用者要求先做這裡）。
 	SafeArea.register_control(portrait_layout)
 	SafeArea.register_control(landscape_layout)
+	## 2026-09-25 使用者要求操控按鈕（移動/旋轉/軟降/硬降/hold）「拆開」，
+	## 不要跟著整份版面一起被平移——這幾顆固定用實體按鈕操作,不管瀏海多深
+	## 都不該離開拇指原本習慣的位置。手勢模式的 GestureZone/MoveGestureZone
+	## 涵蓋大半個螢幕,跟著平移一點點沒有實際影響,這次沒有跟著排除。暫停/
+	## 設定這兩顆是選單性質的按鈕,不是「移動旋轉那些」,維持跟著版面一起
+	## 平移。
+	for button in [rotate_ccw_button_portrait, rotate_cw_button_portrait,
+			hard_drop_button_portrait, move_left_button_portrait, move_right_button_portrait,
+			soft_drop_button_portrait, hold_button_portrait,
+			rotate_ccw_button_landscape, rotate_cw_button_landscape,
+			hard_drop_button_landscape, move_left_button_landscape, move_right_button_landscape,
+			soft_drop_button_landscape, hold_button_landscape]:
+		SafeArea.exempt_from_translation(button)
 
 	_match_sync = BattleMatchSync.new()
 	_match_sync.name = "BattleMatchSync"
@@ -954,19 +971,30 @@ func _set_next_round_ready_text(text: String) -> void:
 ## 就不見）。
 func _refresh_stars_display() -> void:
 	var target_wins: int = maxi(BattleSettings.rounds_to_win, 1)
-	var stars_text := _build_stars_text(target_wins)
-	stars_label_portrait.visible = true
-	stars_label_portrait.text = stars_text
-	stars_label_landscape.visible = true
-	stars_label_landscape.text = stars_text
+	_populate_stars_row(stars_row_portrait, target_wins)
+	_populate_stars_row(stars_row_landscape, target_wins)
 
-func _build_stars_text(target_wins: int) -> String:
-	var lines: Array[String] = []
+## 每隊生成一組「隊名 Label + 星星 Label」塞進 row（HBoxContainer），兩個
+## Label 字體大小分別讀 row 自己的 name_font_size/star_font_size（見
+## TeamScoreRow.gd）——每次重算都整批清掉重新生成，隊伍數量不多、切換
+## 頻率也不高（開局一次、贏一輪一次），不用做增量更新。
+func _populate_stars_row(row: TeamScoreRow, target_wins: int) -> void:
+	row.visible = true
+	for child in row.get_children():
+		child.queue_free()
 	for team in range(BattleSettings.TEAM_COUNT):
 		if not _team_in_play(team):
 			continue
-		lines.append("%s %s" % [BattleSettings.TEAM_NAMES[team], _stars_for_team(team, target_wins)])
-	return "\n".join(lines)
+		var group := HBoxContainer.new()
+		var name_label := Label.new()
+		name_label.text = BattleSettings.TEAM_NAMES[team]
+		name_label.add_theme_font_size_override("font_size", int(row.name_font_size))
+		var stars_label := Label.new()
+		stars_label.text = _stars_for_team(team, target_wins)
+		stars_label.add_theme_font_size_override("font_size", int(row.star_font_size))
+		group.add_child(name_label)
+		group.add_child(stars_label)
+		row.add_child(group)
 
 ## 給單一隊伍的星星字串（"★★☆" 這種），本地玩家的整場摘要
 ## （_build_stars_text()）跟每個對手縮小盤面自己那顆星星提示

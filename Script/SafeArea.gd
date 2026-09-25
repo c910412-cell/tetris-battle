@@ -42,6 +42,9 @@ var bottom: float = 0.0
 
 var _registered_controls: Array[Control] = []
 var _backdrop_layers: Array[CanvasLayer] = []
+## key=被排除的節點,value=它註冊當下的原始 position——見 exempt_from_
+## translation() 的說明。
+var _exempt_original_positions: Dictionary = {}
 
 func _ready() -> void:
 	get_tree().root.size_changed.connect(_refresh)
@@ -62,6 +65,7 @@ func _refresh() -> void:
 		bottom = 0.0
 	safe_area_changed.emit(left, top, right, bottom)
 	_apply_registered_controls()
+	_apply_exempt_controls()
 
 ## 呼叫端（例如 Battle.gd）在 _ready() 把自己版面的最外層節點（例如
 ## portrait_layout/landscape_layout）丟進來註冊一次就好，這裡會立刻套用
@@ -142,3 +146,31 @@ func _position_edge_strips(rects: Array) -> void:
 ## 整塊往右下移動，不影響子節點的相對位置。
 func _position_control(control: Control) -> void:
 	control.position = Vector2(left, top)
+
+## 2026-09-25 新增：使用者要求操控按鈕（移動/旋轉那些）「拆開」，不要跟著
+## 整份版面一起被 safe area 往下推——這些按鈕是 register_control() 那個
+## 節點（portrait_layout/landscape_layout）底下的子節點，父層整塊平移
+## (left, top) 之後，子節點沒動過自己的 position，全域座標一樣會跟著父層
+## 一起偏移。做法：記住這個節點「註冊當下」的 position 當作它的原始設計
+## 位置，之後每次父層平移改變時，把它自己的 position 設成
+## 「原始位置 - (left, top)」抵銷掉父層的平移，讓它的全域座標維持不變
+## （視覺上完全不跟著父層移動）。呼叫端只要在 _ready() 呼叫一次就好，跟
+## register_control() 一樣之後轉向/換裝置都會自動重算。
+func exempt_from_translation(control: Control) -> void:
+	if control not in _exempt_original_positions:
+		_exempt_original_positions[control] = control.position
+	_position_exempt_control(control)
+
+func _apply_exempt_controls() -> void:
+	var stale: Array = []
+	for control in _exempt_original_positions:
+		if not is_instance_valid(control):
+			stale.append(control)
+			continue
+		_position_exempt_control(control)
+	for control in stale:
+		_exempt_original_positions.erase(control)
+
+func _position_exempt_control(control: Control) -> void:
+	var original: Vector2 = _exempt_original_positions[control]
+	control.position = original - Vector2(left, top)

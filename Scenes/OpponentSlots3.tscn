@@ -15,7 +15,7 @@ offset_bottom = -8.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-ratio = 0.5
+ratio = 0.56
 
 [node name="Placeholder" type="ReferenceRect" parent="Slot1/PanelAspect"]
 editor_only = true
@@ -25,6 +25,25 @@ size_flags_vertical = 3
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
+
+[node name="NameLabel" type="Label" parent="Slot1/PanelAspect"]
+layout_mode = 2
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 20.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 16
+text = "玩家名稱"
+horizontal_alignment = 1
+
+[node name="GarbageBarAnchor" type="Control" parent="Slot1/PanelAspect"]
+layout_mode = 2
+anchors_preset = 4
+anchor_top = 0.0
+anchor_bottom = 1.0
+offset_right = 8.0
+mouse_filter = 2
 
 [node name="Slot2" type="Control" parent="."]
 mouse_filter = 2
@@ -38,7 +57,7 @@ offset_bottom = -4.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-ratio = 0.5
+ratio = 0.56
 
 [node name="Placeholder" type="ReferenceRect" parent="Slot2/PanelAspect"]
 editor_only = true
@@ -48,6 +67,25 @@ size_flags_vertical = 3
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
+
+[node name="NameLabel" type="Label" parent="Slot2/PanelAspect"]
+layout_mode = 2
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 20.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 16
+text = "玩家名稱"
+horizontal_alignment = 1
+
+[node name="GarbageBarAnchor" type="Control" parent="Slot2/PanelAspect"]
+layout_mode = 2
+anchors_preset = 4
+anchor_top = 0.0
+anchor_bottom = 1.0
+offset_right = 8.0
+mouse_filter = 2
 
 [node name="Slot3" type="Control" parent="."]
 mouse_filter = 2
@@ -60,7 +98,7 @@ offset_top = 8.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-ratio = 0.5
+ratio = 0.56
 
 [node name="Placeholder" type="ReferenceRect" parent="Slot3/PanelAspect"]
 editor_only = true
@@ -70,3 +108,22 @@ size_flags_vertical = 3
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
+
+[node name="NameLabel" type="Label" parent="Slot3/PanelAspect"]
+layout_mode = 2
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 20.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 16
+text = "玩家名稱"
+horizontal_alignment = 1
+
+[node name="GarbageBarAnchor" type="Control" parent="Slot3/PanelAspect"]
+layout_mode = 2
+anchors_preset = 4
+anchor_top = 0.0
+anchor_bottom = 1.0
+offset_right = 8.0
+mouse_filter = 2

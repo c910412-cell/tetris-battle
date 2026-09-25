@@ -16,6 +16,7 @@
 [ext_resource type="Texture2D" uid="uid://box0obtagdvjk" path="res://Image/暫停.png" id="15_s4edx"]
 [ext_resource type="Texture2D" uid="uid://cjhoy48dq8x82" path="res://Image/設定.png" id="16_settings"]
 [ext_resource type="Script" uid="uid://dog2iujvkxrdq" path="res://Script/MiniPiecePanel.gd" id="17_minipiece"]
+[ext_resource type="Script" uid="uid://q523fge10w7r" path="res://Script/TeamScoreRow.gd" id="18_scorerow"]
 
 [node name="BattleLayoutPortrait" type="Control" unique_id=1272861030]
 layout_mode = 3
@@ -25,7 +26,8 @@ offset_bottom = 1920.0
 mouse_filter = 2
 
 [node name="FrameGuide" type="ReferenceRect" parent="." unique_id=639294879]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -80,15 +82,17 @@ border_width = 3.0
 [node name="GarbageBarAnchor" type="Control" parent="BoardAspect/BoardAnchor" unique_id=2036585763]
 anchors_preset = 0
 offset_left = -40.0
-offset_top = 0.0
 offset_right = -10.0
 offset_bottom = 1616.0
 mouse_filter = 2
 
 [node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/GarbageBarAnchor" unique_id=2099931582]
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 border_color = Color(1, 1, 1, 0.6)
 border_width = 3.0
@@ -180,13 +184,16 @@ theme_override_font_sizes/font_size = 40
 text = "NEXT"
 horizontal_alignment = 1
 
-[node name="StarsLabel" type="Label" parent="." unique_id=1197561466]
+[node name="StarsRow" type="HBoxContainer" parent="." unique_id=1197561466]
 layout_mode = 0
 offset_left = 922.0
 offset_top = 1527.0
 offset_right = 1402.0
 offset_bottom = 1617.0
-theme_override_font_sizes/font_size = 28
+theme_override_constants/separation = 24
+script = ExtResource("18_scorerow")
+name_font_size = 24.0
+star_font_size = 28.0
 
 [node name="StarsIconAnchor" type="ReferenceRect" parent="." unique_id=784954168]
 layout_mode = 0
@@ -312,13 +319,18 @@ mouse_filter = 1
 script = ExtResource("12")
 
 [node name="OpponentSlots1" parent="." unique_id=1202951601 instance=ExtResource("9")]
-layout_mode = 0
-offset_left = 881.0
-offset_top = 702.0
-offset_right = 1001.0
-offset_bottom = 1742.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -205.0
+offset_top = 671.0
+offset_right = -26.0
+offset_bottom = 1078.3794
+grow_horizontal = 0
 
 [node name="OpponentSlots2" parent="." unique_id=230358606 instance=ExtResource("10")]
+visible = false
 anchors_preset = 0
 offset_left = 881.0
 offset_top = 702.0

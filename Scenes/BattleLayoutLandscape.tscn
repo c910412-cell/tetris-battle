@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://Script/TetrisGestureZone.gd" id="12"]
 [ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
 [ext_resource type="Script" uid="uid://dog2iujvkxrdq" path="res://Script/MiniPiecePanel.gd" id="15_minipiece"]
+[ext_resource type="Script" uid="uid://q523fge10w7r" path="res://Script/TeamScoreRow.gd" id="16_scorerow"]
 
 [sub_resource type="StyleBoxFlat" id="BattleSettingsButtonStyle"]
 bg_color = Color(0.06879827, 0.06879828, 0.06879828, 0.7)
@@ -107,14 +108,17 @@ offset_bottom = 224.0
 theme_override_font_sizes/font_size = 20
 text = "NEXT"
 
-[node name="StarsLabel" type="Label" parent="."]
+[node name="StarsRow" type="HBoxContainer" parent="."]
 visible = false
 offset_left = 760.0
 offset_top = 20.0
 offset_right = 1160.0
 offset_bottom = 100.0
-theme_override_font_sizes/font_size = 28
-horizontal_alignment = 1
+theme_override_constants/separation = 24
+alignment = 1
+script = ExtResource("16_scorerow")
+name_font_size = 24.0
+star_font_size = 28.0
 
 [node name="StarsIconAnchor" type="ReferenceRect" parent="."]
 editor_only = true
