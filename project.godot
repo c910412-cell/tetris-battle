@@ -43,6 +43,10 @@ export/convert_text_resources_to_binary=false
 
 enabled=PackedStringArray("res://addons/godot_ai_bridge/plugin.cfg")
 
+[gui]
+
+theme/custom_font="uid://dtreh7mouesst"
+
 [input]
 
 tetris_move_left={
