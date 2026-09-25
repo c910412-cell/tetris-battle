@@ -8,12 +8,11 @@
 [ext_resource type="Texture2D" uid="uid://bxgo4jqjsgv2y" path="res://Image/左轉.png" id="6"]
 [ext_resource type="Texture2D" uid="uid://7gkru1s3iymw" path="res://Image/右轉.png" id="7"]
 [ext_resource type="Texture2D" uid="uid://dbq2j52e50jxm" path="res://Image/hold.png" id="8"]
-[ext_resource type="PackedScene" path="res://Scenes/OpponentSlots1.tscn" id="9"]
+[ext_resource type="PackedScene" uid="uid://bj71ructu7cdh" path="res://Scenes/OpponentSlots1.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://Scenes/OpponentSlots2.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://Scenes/OpponentSlots3.tscn" id="11"]
 [ext_resource type="Script" uid="uid://dsbcgk6n514mg" path="res://Script/TetrisGestureZone.gd" id="12"]
 [ext_resource type="Script" uid="uid://bat67mpfamqv5" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
-[ext_resource type="Script" uid="uid://cjxlpln8tfsnh" path="res://Script/PendingDotsAnchor.gd" id="14"]
 [ext_resource type="Texture2D" uid="uid://box0obtagdvjk" path="res://Image/暫停.png" id="15_s4edx"]
 [ext_resource type="Texture2D" uid="uid://cjhoy48dq8x82" path="res://Image/設定.png" id="16_settings"]
 [ext_resource type="Script" uid="uid://dog2iujvkxrdq" path="res://Script/MiniPiecePanel.gd" id="17_minipiece"]
@@ -78,16 +77,15 @@ mouse_filter = 2
 border_color = Color(1, 1, 1, 0.6)
 border_width = 3.0
 
-[node name="PendingDotsAnchor" type="Control" parent="BoardAspect/BoardAnchor" unique_id=2036585763]
+[node name="GarbageBarAnchor" type="Control" parent="BoardAspect/BoardAnchor" unique_id=2036585763]
 anchors_preset = 0
-offset_left = 829.0
-offset_top = 1220.0
-offset_right = 849.0
-offset_bottom = 1240.0
+offset_left = -40.0
+offset_top = 0.0
+offset_right = -10.0
+offset_bottom = 1616.0
 mouse_filter = 2
-script = ExtResource("14")
 
-[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/PendingDotsAnchor" unique_id=2099931582]
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/GarbageBarAnchor" unique_id=2099931582]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -116,12 +114,15 @@ grow_horizontal = 0
 scale = Vector2(1.4400003, 1.4400003)
 mouse_filter = 2
 script = ExtResource("17_minipiece")
+mini_cell_size = 40.0
 
 [node name="Placeholder" type="ReferenceRect" parent="HoldPanel" unique_id=375977219]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 border_color = Color(1, 1, 1, 0.6)
 border_width = 3.0
@@ -154,6 +155,7 @@ grow_horizontal = 0
 scale = Vector2(1.4400003, 1.4400003)
 mouse_filter = 2
 script = ExtResource("17_minipiece")
+mini_cell_size = 40.0
 
 [node name="Placeholder" type="ReferenceRect" parent="NextPanel" unique_id=637739447]
 layout_mode = 0
@@ -310,27 +312,26 @@ mouse_filter = 1
 script = ExtResource("12")
 
 [node name="OpponentSlots1" parent="." unique_id=1202951601 instance=ExtResource("9")]
-anchors_preset = 0
-offset_left = 920.0
-offset_top = 460.0
-offset_right = 1040.0
-offset_bottom = 1500.0
+layout_mode = 0
+offset_left = 881.0
+offset_top = 702.0
+offset_right = 1001.0
+offset_bottom = 1742.0
 
 [node name="OpponentSlots2" parent="." unique_id=230358606 instance=ExtResource("10")]
-visible = false
 anchors_preset = 0
-offset_left = 920.0
-offset_top = 460.0
-offset_right = 1040.0
-offset_bottom = 1500.0
+offset_left = 881.0
+offset_top = 702.0
+offset_right = 1001.0
+offset_bottom = 1742.0
 
 [node name="OpponentSlots3" parent="." unique_id=732173734 instance=ExtResource("11")]
 visible = false
 anchors_preset = 0
-offset_left = 920.0
-offset_top = 460.0
-offset_right = 1040.0
-offset_bottom = 1500.0
+offset_left = 881.0
+offset_top = 702.0
+offset_right = 1001.0
+offset_bottom = 1742.0
 
 [node name="HoldButton" type="TextureButton" parent="." unique_id=2137172824]
 layout_mode = 1
@@ -357,9 +358,9 @@ anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -124.0
-offset_top = 21.0
+offset_top = 11.0
 offset_right = -24.0
-offset_bottom = 121.0
+offset_bottom = 111.0
 grow_horizontal = 0
 texture_normal = ExtResource("15_s4edx")
 ignore_texture_size = true
@@ -373,10 +374,10 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -224.0
-offset_top = 21.0
-offset_right = -134.0
-offset_bottom = 121.0
+offset_left = -231.0
+offset_top = 11.0
+offset_right = -131.0
+offset_bottom = 111.0
 grow_horizontal = 0
 texture_normal = ExtResource("16_settings")
 ignore_texture_size = true
@@ -385,9 +386,9 @@ stretch_mode = 5
 [node name="ScorePlaceholder" type="ReferenceRect" parent="." unique_id=461987479]
 layout_mode = 0
 offset_left = 40.0
-offset_top = 52.0
+offset_top = 15.0
 offset_right = 300.0
-offset_bottom = 92.0
+offset_bottom = 55.0
 mouse_filter = 2
 border_color = Color(1, 1, 1, 0.6)
 border_width = 3.0
@@ -395,18 +396,18 @@ border_width = 3.0
 [node name="ScoreLabel" type="Label" parent="." unique_id=2039152864]
 layout_mode = 0
 offset_left = 40.0
-offset_top = 52.0
+offset_top = 15.0
 offset_right = 300.0
-offset_bottom = 94.0
+offset_bottom = 57.0
 theme_override_font_sizes/font_size = 30
 text = "分數: 0"
 
 [node name="LinesPlaceholder" type="ReferenceRect" parent="." unique_id=1004615409]
 layout_mode = 0
 offset_left = 311.0
-offset_top = 52.0
+offset_top = 15.0
 offset_right = 571.0
-offset_bottom = 92.0
+offset_bottom = 55.0
 mouse_filter = 2
 border_color = Color(1, 1, 1, 0.6)
 border_width = 3.0
@@ -414,18 +415,18 @@ border_width = 3.0
 [node name="LinesLabel" type="Label" parent="." unique_id=1584307956]
 layout_mode = 0
 offset_left = 311.0
-offset_top = 52.0
+offset_top = 15.0
 offset_right = 571.0
-offset_bottom = 94.0
+offset_bottom = 57.0
 theme_override_font_sizes/font_size = 30
 text = "消行: 0"
 
 [node name="LevelPlaceholder" type="ReferenceRect" parent="." unique_id=1974022733]
 layout_mode = 0
 offset_left = 579.0
-offset_top = 52.0
+offset_top = 15.0
 offset_right = 839.0
-offset_bottom = 92.0
+offset_bottom = 55.0
 mouse_filter = 2
 border_color = Color(1, 1, 1, 0.6)
 border_width = 3.0
@@ -433,9 +434,9 @@ border_width = 3.0
 [node name="LevelLabel" type="Label" parent="." unique_id=1893648049]
 layout_mode = 0
 offset_left = 579.0
-offset_top = 52.0
+offset_top = 15.0
 offset_right = 839.0
-offset_bottom = 94.0
+offset_bottom = 57.0
 theme_override_font_sizes/font_size = 30
 text = "等級: 1"
 
@@ -455,3 +456,18 @@ text = "已被淘汰
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1467233852]
+visible = false
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -551.0
+offset_top = -3.0
+offset_right = -511.0
+offset_bottom = 37.0
+grow_horizontal = 2
+scale = Vector2(27.679998, 3.0400002)
+color = Color(0.16565639, 0.16565642, 0.16565639, 1)

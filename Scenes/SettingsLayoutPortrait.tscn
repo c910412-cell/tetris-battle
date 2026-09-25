@@ -109,22 +109,6 @@ autowrap_mode = 2
 [node name="SoundToggle" type="CheckButton" parent="SoundRow"]
 layout_mode = 2
 
-[node name="SafeAreaDebugRow" type="HBoxContainer" parent="."]
-offset_left = 60.0
-offset_top = 980.0
-offset_right = 1020.0
-offset_bottom = 1060.0
-
-[node name="Label" type="Label" parent="SafeAreaDebugRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
-text = "顯示安全區域（除錯用）"
-autowrap_mode = 2
-
-[node name="SafeAreaDebugToggle" type="CheckButton" parent="SafeAreaDebugRow"]
-layout_mode = 2
-
 [node name="CloseButton" type="Button" parent="."]
 offset_left = 60.0
 offset_top = 1780.0

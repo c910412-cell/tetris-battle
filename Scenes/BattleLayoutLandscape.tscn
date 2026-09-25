@@ -13,7 +13,6 @@
 [ext_resource type="PackedScene" path="res://Scenes/OpponentSlots3.tscn" id="11"]
 [ext_resource type="Script" path="res://Script/TetrisGestureZone.gd" id="12"]
 [ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
-[ext_resource type="Script" path="res://Script/PendingDotsAnchor.gd" id="14"]
 [ext_resource type="Script" uid="uid://dog2iujvkxrdq" path="res://Script/MiniPiecePanel.gd" id="15_minipiece"]
 
 [sub_resource type="StyleBoxFlat" id="BattleSettingsButtonStyle"]
@@ -134,15 +133,14 @@ offset_top = 210.0
 offset_right = 1161.0
 offset_bottom = 218.0
 
-[node name="PendingDotsAnchor" type="Control" parent="BoardAspect/BoardAnchor"]
+[node name="GarbageBarAnchor" type="Control" parent="BoardAspect/BoardAnchor"]
 mouse_filter = 2
-offset_left = -34.0
-offset_top = 770.0
-offset_right = -14.0
-offset_bottom = 790.0
-script = ExtResource("14")
+offset_left = -30.0
+offset_top = 0.0
+offset_right = -8.0
+offset_bottom = 800.0
 
-[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/PendingDotsAnchor"]
+[node name="Placeholder" type="ReferenceRect" parent="BoardAspect/BoardAnchor/GarbageBarAnchor"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2

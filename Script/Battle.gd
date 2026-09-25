@@ -14,8 +14,9 @@
 ## 從這個節點的 size 除以 10/20 算出來）/`CellAnchor`（單一格的位置+大小，
 ## 2026-09-21 起不再拿來算 cell_size，純粹留給之後要放「一格一格」重複背景
 ## 素材時當參考）/`HoldPanel`+`HoldLabel`/`NextPanel`+`NextLabel`/
-## `SettlementBar`（結算倒數條）/`PendingDotsAnchor`（待定點點直條的起點，
-## 之後點點要換成圖片就是這裡）/`StarsLabel`（2026-09-22 新增：bo-N 戰績星星，
+## `SettlementBar`（結算倒數條）/`GarbageBarAnchor`（2026-09-25 待定垃圾行
+## 改成長條狀,原名 PendingDotsAnchor,機制/排版方式比照 SettlementBar,見
+## _draw_pending_garbage_bar() 的說明）/`StarsLabel`（2026-09-22 新增：bo-N 戰績星星，
 ## 使用者自己排位置、之後可換圖片素材，不再跟結算文字綁在同一個
 ## VBoxContainer 裡）/8 個觸控按鈕（含 2026-09-22 新增的 `PauseButton`，
 ## 貼圖已經接好）/`OpponentSlots1`/`OpponentSlots2`/`OpponentSlots3`（對手
@@ -79,7 +80,7 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var landscape_layout: Control = $BoardLayer/LandscapeLayout
 ## 2026-09-22 起，這五個「盤面相關」節點改用 find_child() 在整個 Portrait/
 ## LandscapeLayout 子樹裡搜尋名字，不再寫死 `$BoardLayer/.../XXX` 的完整路徑
-## ——因為使用者會在編輯器裡把 SettlementBar/PendingDotsAnchor 這類節點拖進
+## ——因為使用者會在編輯器裡把 SettlementBar/GarbageBarAnchor 這類節點拖進
 ## BoardAnchor 底下（讓它們「跟著盤面走」的直覺操作），不管巢狀幾層、以後
 ## 又搬去哪個節點底下，只要名字沒改，這裡都找得到，不會再因為重新掛父節點
 ## 就整個 null 掉。按鈕類節點沒有這個問題（使用者不會去動它們的父節點），
@@ -94,12 +95,16 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var hold_panel_portrait: MiniPiecePanel = portrait_layout.find_child("HoldPanel", true, false) as MiniPiecePanel
 @onready var next_panel_portrait: MiniPiecePanel = portrait_layout.find_child("NextPanel", true, false) as MiniPiecePanel
 @onready var settlement_bar_portrait: Control = portrait_layout.find_child("SettlementBar", true, false) as Control
-@onready var pending_dots_anchor_portrait: PendingDotsAnchor = portrait_layout.find_child("PendingDotsAnchor", true, false) as PendingDotsAnchor
+## 2026-09-25：待定垃圾行點點改成長條狀，機制比照 SettlementBar（見
+## _draw_pending_garbage_bar() 的說明），節點也改叫 GarbageBarAnchor、拿掉
+## 原本 PendingDotsAnchor.gd 的 dot_size_ratio（不再需要，跟 SettlementBar
+## 一樣是純 Control，靠節點本身的位置/大小決定粗細跟離棋盤多遠）。
+@onready var garbage_bar_anchor_portrait: Control = portrait_layout.find_child("GarbageBarAnchor", true, false) as Control
 @onready var board_anchor_landscape: Control = landscape_layout.find_child("BoardAnchor", true, false) as Control
 @onready var hold_panel_landscape: MiniPiecePanel = landscape_layout.find_child("HoldPanel", true, false) as MiniPiecePanel
 @onready var next_panel_landscape: MiniPiecePanel = landscape_layout.find_child("NextPanel", true, false) as MiniPiecePanel
 @onready var settlement_bar_landscape: Control = landscape_layout.find_child("SettlementBar", true, false) as Control
-@onready var pending_dots_anchor_landscape: PendingDotsAnchor = landscape_layout.find_child("PendingDotsAnchor", true, false) as PendingDotsAnchor
+@onready var garbage_bar_anchor_landscape: Control = landscape_layout.find_child("GarbageBarAnchor", true, false) as Control
 
 ## 手勢操作開關（PlayerSettings.gesture_controls_enabled）：開啟時這六顆按鈕
 ## 隱藏，改用 GestureZone（右側：滑動旋轉/到底＋雙擊 hold）/MoveGestureZone
@@ -447,10 +452,19 @@ func _apply_soft_drop_setting() -> void:
 ## 直向/橫向各生成一份 OpponentPanel（不共用同一個節點，切換方向時才不用
 ## 重新生成，只是跟著父節點一起隱藏）。
 func _rebuild_opponent_panels() -> void:
+	## 2026-09-25：Slot 底下現在多了一層固定的 PanelAspect（AspectRatioContainer,
+	## 見 OpponentSlots1/2/3.tscn 的說明——讓使用者排版時對手縮小盤面的示意框
+	## 長度跟著正確比例走,不會過長），只清掉裡面動態生成的 OpponentPanel,
+	## 不要再整個 slot.get_children() 通殺,否則會連 PanelAspect 本身都被
+	## queue_free() 掉,下一輪就找不到節點了。
 	for slots_group in opponent_slots_portrait + opponent_slots_landscape:
 		for slot in slots_group.get_children():
-			for child in slot.get_children():
-				child.queue_free()
+			var aspect: Node = slot.get_node_or_null("PanelAspect")
+			if aspect == null:
+				continue
+			for child in aspect.get_children():
+				if child is OpponentPanel:
+					child.queue_free()
 	_opponent_panels.clear()
 
 	var opponent_ids: Array = []
@@ -475,15 +489,15 @@ func _rebuild_opponent_panels() -> void:
 
 func _spawn_opponent_panel(pid: int, slot: Control) -> OpponentPanel:
 	var panel := OpponentPanel.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	## 塞進 PanelAspect（Container）底下，不是塞進 slot 本身——Container 的
+	## 子節點靠 size_flags 撐滿、靠 anchor/offset 沒有用（Container 每幀都會
+	## 重新蓋掉子節點的位置/大小），跟其他 Container 底下的節點同一套做法。
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.participant = _director.participants[pid]
 	panel.pid = pid
-	## 這個對手所在隊伍目前的 bo-N 戰績星星（跟本地玩家版面上那顆共用同一套
-	## _stars_for_team()）——每輪開始時 _rebuild_opponent_panels() 都會重新
-	## 生成面板，這裡設一次就好，不用另外做「戰績改變就刷新」的機制。
-	panel.stars_text = _stars_for_team(panel.participant.team_index, maxi(BattleSettings.rounds_to_win, 1))
 	panel.panel_tapped.connect(_on_opponent_panel_tapped)
-	slot.add_child(panel)
+	slot.get_node("PanelAspect").add_child(panel)
 	return panel
 
 func _process(delta: float) -> void:
@@ -1025,12 +1039,12 @@ func _active_next_panel() -> MiniPiecePanel:
 func _active_settlement_bar() -> Control:
 	return settlement_bar_portrait if portrait_layout.visible else settlement_bar_landscape
 
-func _active_pending_dots_anchor() -> PendingDotsAnchor:
-	return pending_dots_anchor_portrait if portrait_layout.visible else pending_dots_anchor_landscape
+func _active_garbage_bar_anchor() -> Control:
+	return garbage_bar_anchor_portrait if portrait_layout.visible else garbage_bar_anchor_landscape
 
 ## 畫圖邏輯抽到 TetrisBoardRenderer.gd 共用（Board.gd 也用同一份），這裡只
 ## 負責讀目前生效的 BoardAnchor/HoldPanel/NextPanel/SettlementBar/
-## PendingDotsAnchor 節點的 rect 算 cell_size/origin 再傳進去，不再自己用
+## GarbageBarAnchor 節點的 rect 算 cell_size/origin 再傳進去，不再自己用
 ## 公式算版面位置——對手縮小盤面則是各自的 OpponentPanel 自己在 _draw()
 ## 裡處理，不在這裡畫。
 func _draw() -> void:
@@ -1067,31 +1081,35 @@ func _draw() -> void:
 	if not upcoming.is_empty():
 		TetrisBoardRenderer.draw_mini_piece(self, next_rect, upcoming[0], next_panel.mini_cell_size, next_panel.center_offset)
 
-	## Y 座標改成從 _board_origin/_cell_size 現算（鎖定在最下面那個可視行的
-	## 上下正中間），不要直接讀 PendingDotsAnchor 節點的固定座標——這樣
-	## BoardAnchor 被使用者放大/縮小時，點點的間距（spacing=_cell_size，本來
-	## 就會跟著縮放）跟起始高度才會一起跟著變，不會維持在縮放前的舊位置。
-	## X 座標維持讀 PendingDotsAnchor（使用者自己排要離盤面多遠）。
-	## 2026-09-22 起 X/Y 都改成每一幀直接用目前的 _board_origin/_cell_size
-	## 現算（不再讀 PendingDotsAnchor 節點自己的固定座標）：第一顆點對齊在
-	## 最下面那個可視行的正中間，水平固定在盤面左邊 0.6 格的距離——跟對手
-	## 縮小盤面（OpponentPanel.gd）現算 dots_start 的公式是同一套，使用者把
-	## BoardAnchor 放大縮小時，點的位置/間距/大小（dot_size_ratio，見
-	## PendingDotsAnchor.gd）就都會自動跟著正確換算，不用手動重排這個節點。
-	var dots_anchor := _active_pending_dots_anchor()
-	var dots_start_pos := Vector2(
-		_board_origin.x - _cell_size * 0.6,
-		_board_origin.y + TetrisBoard.VISIBLE_HEIGHT * _cell_size - _cell_size / 2.0,
-	)
-	TetrisBoardRenderer.draw_pending_dots(self, _local_participant.pending_garbage.size(), dots_start_pos, _cell_size, dots_anchor.dot_size_ratio)
+	_draw_pending_garbage_bar()
 	_draw_settlement_bar()
+
+## 2026-09-25 使用者要求：待定垃圾行的點點改成長條狀，跟結算倒數條同一種
+## 「排版機制」——結算條是橫的、鎖定寬度／X 對齊棋盤兩側，高度／Y 讀節點
+## 本身；這條垂直、放盤面左側，所以反過來：鎖定高度／Y 對齊棋盤上下兩側
+## （_cell_size*VISIBLE_HEIGHT／_board_origin.y，理由跟結算條鎖 X／寬度
+## 完全一樣——GarbageBarAnchor 節點如果沒有精準卡在跟棋盤同樣的長寬比,自己
+## 算出來的高度會跟棋盤實際畫出來的高度對不上),寬度／X 座標維持讀節點本身
+## （粗細、離棋盤多遠讓使用者自己拖）。由下往上填滿,待定行數／可視行數
+## （20 行封頂,理由跟舊版點點的上限一樣）當填滿比例,填滿顏色用
+## TetrisPieceData.GARBAGE_COLOR——待定的行結算之後就會變成這個顏色的垃圾行,
+## 提前用同一個顏色讓玩家直覺對得起來。
+func _draw_pending_garbage_bar() -> void:
+	var anchor := _active_garbage_bar_anchor()
+	var bar_width := TetrisBoardRenderer.effective_size(anchor).x
+	var bar_rect := Rect2(Vector2(anchor.global_position.x, _board_origin.y), Vector2(bar_width, _cell_size * TetrisBoard.VISIBLE_HEIGHT))
+	var ratio := clampf(float(_local_participant.pending_garbage.size()) / float(TetrisBoard.VISIBLE_HEIGHT), 0.0, 1.0)
+	draw_rect(bar_rect, Color(0.2, 0.2, 0.24), true)
+	var fill_height := bar_rect.size.y * ratio
+	var fill_rect := Rect2(Vector2(bar_rect.position.x, bar_rect.position.y + bar_rect.size.y - fill_height), Vector2(bar_rect.size.x, fill_height))
+	draw_rect(fill_rect, TetrisPieceData.GARBAGE_COLOR, true)
 
 ## 找到長度對不上的真正原因：BoardAnchor 沒有精準卡在 10:20 的比例
 ## （寬度算出來的 cell_size 比高度算出來的還大，多出來的水平空間被讓掉，
 ## 見 _draw() 的 min(width/10, height/20)）——所以 BoardAnchor 自己的寬度
 ## 一定比「棋盤實際畫出來的寬度」還寬，SettlementBar 用 BoardAnchor 的比例
 ## 去抓自己的寬度，理所當然會比棋盤本身還長。改成寬度／X 座標直接鎖定
-## _cell_size*10／_board_origin.x（棋盤實際畫出來的範圍，跟 PendingDotsAnchor
+## _cell_size*10／_board_origin.x（棋盤實際畫出來的範圍，跟 GarbageBarAnchor
 ## 現算位置同一個原則），保證永遠精準對齊棋盤兩側，不受 BoardAnchor 比例
 ## 影響；高度／Y 座標維持讀節點本身（粗細、離棋盤多遠讓使用者自己決定）。
 func _draw_settlement_bar() -> void:

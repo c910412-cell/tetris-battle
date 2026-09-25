@@ -10,9 +10,6 @@ extends Control
 
 ## 名字文字的預留高度，畫面/命中範圍都要扣掉這塊，跟棋盤格子本體分開。
 const LABEL_HEIGHT := 20.0
-## 2026-09-22 新增：底部星星提示（這個對手所在隊伍目前 bo-N 贏了幾場）的
-## 預留高度，跟名字標籤同一套「棋盤格子區域要扣掉」的做法。
-const STARS_HEIGHT := 18.0
 
 ## 由 Battle.gd 在 instantiate 之後立刻設定，設定好才會有東西可畫。
 var participant: BattleParticipant
@@ -20,10 +17,6 @@ var pid: int = 0
 ## 指定目標攻擊開啟時，這個對手是不是玩家目前選的目標——Battle.gd 每幀更新，
 ## 用來決定要不要畫紅框。
 var is_target: bool = false
-## 這個對手所在隊伍的 bo-N 戰績星星（"★★☆" 這種），由 Battle.gd 在
-## _spawn_opponent_panel() 設定，跟本地玩家版面上那顆共用同一套
-## _stars_for_team()，空字串就不畫。
-var stars_text: String = ""
 
 ## 點擊/觸控這個面板時發出，Battle.gd 監聽這個訊號呼叫
 ## BattleDirector.set_manual_target()，不用再靠 Battle.gd 自己算全域座標
@@ -43,7 +36,7 @@ func _draw() -> void:
 	if not participant:
 		return
 	var origin := Vector2(0, LABEL_HEIGHT)
-	var available := Vector2(size.x, maxf(size.y - LABEL_HEIGHT - STARS_HEIGHT, 1.0))
+	var available := Vector2(size.x, maxf(size.y - LABEL_HEIGHT, 1.0))
 	var cell_size := maxf(minf(available.x / TetrisBoard.WIDTH, available.y / TetrisBoard.VISIBLE_HEIGHT), 2.0)
 	var board_size := Vector2(TetrisBoard.WIDTH * cell_size, TetrisBoard.VISIBLE_HEIGHT * cell_size)
 
@@ -56,7 +49,10 @@ func _draw() -> void:
 	if not participant.is_eliminated and not participant.controller.is_clearing() and participant.is_local:
 		TetrisBoardRenderer.draw_active_piece(self, participant.controller, origin, cell_size)
 
-	draw_string(ThemeDB.fallback_font, Vector2(0, LABEL_HEIGHT - 6), _label_text(), HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
+	## 2026-09-25 使用者要求名字在盤面正中央——用 HORIZONTAL_ALIGNMENT_CENTER
+	## 一定要帶寬度參數（這裡帶整個面板的 size.x）才會真的置中，帶 -1 的話
+	## CENTER 沒有意義（等同不置中，字會貼著畫布左邊）。
+	draw_string(ThemeDB.fallback_font, Vector2(0, LABEL_HEIGHT - 6), _label_text(), HORIZONTAL_ALIGNMENT_CENTER, size.x, 16)
 	var dots_start := Vector2(origin.x - cell_size * 0.6, origin.y + (TetrisBoard.VISIBLE_HEIGHT - 0.5) * cell_size)
 	TetrisBoardRenderer.draw_pending_dots(self, participant.pending_garbage.size(), dots_start, cell_size)
 
@@ -64,9 +60,6 @@ func _draw() -> void:
 	## 「已淘汰」（文字提示,盤面本身還是清楚可見）視覺上要有區別。
 	if participant.is_disconnected:
 		draw_rect(Rect2(origin, board_size), Color(0.4, 0.4, 0.42, 0.55), true)
-
-	if stars_text != "":
-		draw_string(ThemeDB.fallback_font, Vector2(0, origin.y + board_size.y + STARS_HEIGHT - 4), stars_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
 
 	if is_target:
 		draw_rect(Rect2(origin, board_size).grow(4.0), Color(1.0, 0.15, 0.15), false, 4.0)

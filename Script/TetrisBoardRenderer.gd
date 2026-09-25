@@ -92,9 +92,26 @@ static func draw_side_panel(ci: CanvasItem, rect: Rect2, type: int, mini_cell: f
 ## mini_cell/center_offset 2026-09-25 從寫死改成參數——呼叫端（Battle.gd）從
 ## HoldPanel/NextPanel 節點上的 MiniPiecePanel.gd 讀使用者自己調好的值傳
 ## 進來，不在這裡重複畫圖邏輯。
+## 2026-09-25 修正真正置中：原本假設每個方塊的格子座標都落在一個 4x4、
+## 中心點固定在 (2,2) 的框裡，直接扣掉 (mini_cell*2, mini_cell*2)——但
+## TetrisPieceData 裡不同方塊的座標範圍不是每個都精準對齊 4x4 正中央
+## （例如 O/S/Z/T/L/J 這些用的是比較小的框，框內實際佔用的格子偏左上），
+## 所以畫出來整體偏左上。改成先掃一次這個方塊實際用到的格子座標範圍
+## （min/max x/y），用「這個形狀真正的外框」去置中，不管哪種方塊、哪一種
+## 座標系統定義,視覺上都會準確置中在 rect 正中央。
 static func draw_mini_piece(ci: CanvasItem, rect: Rect2, type: int, mini_cell: float = 16.0, center_offset: Vector2 = Vector2.ZERO) -> void:
 	var cells := TetrisPieceData.get_cells(type as TetrisPieceData.PieceType, 0)
-	var origin := rect.position + rect.size / 2.0 + center_offset - Vector2(mini_cell * 2, mini_cell * 2)
+	var min_x := INF
+	var max_x := -INF
+	var min_y := INF
+	var max_y := -INF
+	for c in cells:
+		min_x = minf(min_x, c.x)
+		max_x = maxf(max_x, c.x)
+		min_y = minf(min_y, c.y)
+		max_y = maxf(max_y, c.y)
+	var shape_size := Vector2(max_x - min_x + 1, max_y - min_y + 1) * mini_cell
+	var origin := rect.position + rect.size / 2.0 + center_offset - shape_size / 2.0 - Vector2(min_x, min_y) * mini_cell
 	var color: Color = TetrisPieceData.COLORS[type]
 	for c in cells:
 		var pos := origin + Vector2(c.x, c.y) * mini_cell

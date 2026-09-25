@@ -11,10 +11,17 @@ anchor_right = 1.0
 anchor_bottom = 0.5
 offset_bottom = -6.0
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot1"]
-editor_only = true
+[node name="PanelAspect" type="AspectRatioContainer" parent="Slot1"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
+ratio = 0.5
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot1/PanelAspect"]
+editor_only = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0
@@ -26,10 +33,17 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = 6.0
 
-[node name="Placeholder" type="ReferenceRect" parent="Slot2"]
-editor_only = true
+[node name="PanelAspect" type="AspectRatioContainer" parent="Slot2"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
+ratio = 0.5
+
+[node name="Placeholder" type="ReferenceRect" parent="Slot2/PanelAspect"]
+editor_only = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
 border_color = Color(0.9, 0.5, 0.2, 0.7)
 border_width = 3.0

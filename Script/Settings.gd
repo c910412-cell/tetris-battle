@@ -19,10 +19,6 @@ extends Control
 @onready var soft_drop_speed_spin_landscape: SpinBox = $LandscapeLayout/SoftDropSpeedRow/SoftDropSpeedSpin
 @onready var sound_toggle_portrait: CheckButton = $PortraitLayout/SoundRow/SoundToggle
 @onready var sound_toggle_landscape: CheckButton = $LandscapeLayout/SoundRow/SoundToggle
-## 2026-09-25 新增：見 SafeArea.gd 開頭的說明——先讓使用者自己手機上看得到
-## 安全區數字，這顆開關讓他們看完可以關掉。
-@onready var safe_area_debug_toggle_portrait: CheckButton = $PortraitLayout/SafeAreaDebugRow/SafeAreaDebugToggle
-@onready var safe_area_debug_toggle_landscape: CheckButton = $LandscapeLayout/SafeAreaDebugRow/SafeAreaDebugToggle
 @onready var close_button_portrait: Button = $PortraitLayout/CloseButton
 @onready var close_button_landscape: Button = $LandscapeLayout/CloseButton
 
@@ -33,8 +29,6 @@ func _ready() -> void:
 	gesture_toggle_landscape.button_pressed = PlayerSettings.gesture_controls_enabled
 	sound_toggle_portrait.button_pressed = PlayerSettings.sound_effects_enabled
 	sound_toggle_landscape.button_pressed = PlayerSettings.sound_effects_enabled
-	safe_area_debug_toggle_portrait.button_pressed = PlayerSettings.show_safe_area_debug
-	safe_area_debug_toggle_landscape.button_pressed = PlayerSettings.show_safe_area_debug
 	move_speed_spin_portrait.value = PlayerSettings.move_repeat_sec
 	move_speed_spin_landscape.value = PlayerSettings.move_repeat_sec
 	soft_drop_speed_spin_portrait.value = PlayerSettings.soft_drop_interval_sec
@@ -45,8 +39,7 @@ func _ready() -> void:
 	# 等切換完成），開關「這個設定值本身有沒有開」的邏輯不受影響。
 	for toggle in [vibration_toggle_portrait, vibration_toggle_landscape,
 			gesture_toggle_portrait, gesture_toggle_landscape,
-			sound_toggle_portrait, sound_toggle_landscape,
-			safe_area_debug_toggle_portrait, safe_area_debug_toggle_landscape]:
+			sound_toggle_portrait, sound_toggle_landscape]:
 		SoundEffects.connect_button(toggle)
 	vibration_toggle_portrait.toggled.connect(_on_vibration_toggled)
 	vibration_toggle_landscape.toggled.connect(_on_vibration_toggled)
@@ -54,8 +47,6 @@ func _ready() -> void:
 	gesture_toggle_landscape.toggled.connect(_on_gesture_toggled)
 	sound_toggle_portrait.toggled.connect(_on_sound_toggled)
 	sound_toggle_landscape.toggled.connect(_on_sound_toggled)
-	safe_area_debug_toggle_portrait.toggled.connect(_on_safe_area_debug_toggled)
-	safe_area_debug_toggle_landscape.toggled.connect(_on_safe_area_debug_toggled)
 	move_speed_spin_portrait.value_changed.connect(_on_move_speed_changed)
 	move_speed_spin_landscape.value_changed.connect(_on_move_speed_changed)
 	soft_drop_speed_spin_portrait.value_changed.connect(_on_soft_drop_speed_changed)
@@ -88,11 +79,6 @@ func _on_sound_toggled(pressed: bool) -> void:
 	PlayerSettings.set_sound_effects_enabled(pressed)
 	sound_toggle_portrait.button_pressed = pressed
 	sound_toggle_landscape.button_pressed = pressed
-
-func _on_safe_area_debug_toggled(pressed: bool) -> void:
-	PlayerSettings.set_show_safe_area_debug(pressed)
-	safe_area_debug_toggle_portrait.button_pressed = pressed
-	safe_area_debug_toggle_landscape.button_pressed = pressed
 
 func _on_move_speed_changed(value: float) -> void:
 	PlayerSettings.set_move_repeat_sec(value)
