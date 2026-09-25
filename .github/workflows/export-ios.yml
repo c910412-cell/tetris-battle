@@ -112,6 +112,26 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             build
 
+      - name: Patch Info.plist app name (ASCII, sideload-safe)
+        # AltServer 用免費 Apple ID 申請 App ID 時會把 CFBundleDisplayName/
+        # CFBundleName 送去跟 Apple 開發者 API 登記,含中文字元會被 Apple
+        # 那邊拒絕,AltServer 顯示「The name for this app is invalid」。
+        # project.godot 的 config/name（俄羅斯方塊對戰）保留給 Android/
+        # 桌面版用,這裡只針對要拿去側載的這份 .ipa,把 Info.plist 的顯示
+        # 名稱換成純英數字,不影響其他平台的顯示名稱。
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find build/DerivedData -maxdepth 5 -name "*.app" | head -n 1)
+          PLIST="${APP_PATH}/Info.plist"
+          set_plist_string() {
+            /usr/libexec/PlistBuddy -c "Set :$1 $2" "${PLIST}" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :$1 string $2" "${PLIST}"
+          }
+          set_plist_string CFBundleDisplayName "${BUNDLE_NAME}"
+          set_plist_string CFBundleName "${BUNDLE_NAME}"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "${PLIST}"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleName" "${PLIST}"
+
       - name: Package unsigned .ipa
         run: |
           set -euo pipefail
