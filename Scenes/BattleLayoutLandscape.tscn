@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://Script/TetrisGestureZone.gd" id="12"]
 [ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="13"]
 [ext_resource type="Script" path="res://Script/PendingDotsAnchor.gd" id="14"]
+[ext_resource type="Script" uid="uid://dog2iujvkxrdq" path="res://Script/MiniPiecePanel.gd" id="15_minipiece"]
 
 [sub_resource type="StyleBoxFlat" id="BattleSettingsButtonStyle"]
 bg_color = Color(0.06879827, 0.06879828, 0.06879828, 0.7)
@@ -67,6 +68,7 @@ offset_left = 630.0
 offset_top = 224.0
 offset_right = 750.0
 offset_bottom = 344.0
+script = ExtResource("15_minipiece")
 
 [node name="Placeholder" type="ReferenceRect" parent="HoldPanel"]
 anchor_right = 1.0
@@ -89,6 +91,7 @@ offset_left = 1171.0
 offset_top = 224.0
 offset_right = 1291.0
 offset_bottom = 344.0
+script = ExtResource("15_minipiece")
 
 [node name="Placeholder" type="ReferenceRect" parent="NextPanel"]
 anchor_right = 1.0

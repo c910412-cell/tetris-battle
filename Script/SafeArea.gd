@@ -44,6 +44,7 @@ var bottom: float = 0.0
 var _debug_layer: CanvasLayer
 var _debug_label: Label
 var _registered_controls: Array[Control] = []
+var _backdrop_layers: Array[CanvasLayer] = []
 
 func _ready() -> void:
 	get_tree().root.size_changed.connect(_refresh)
@@ -84,21 +85,23 @@ func register_control(control: Control) -> void:
 	_position_control(control)
 
 ## 2026-09-25 新增：整份版面平移之後，原本被版面蓋住的那塊（上方/左側被推開
-## 讓出來的位置，或是比 1080x1920 基準還長的螢幕多出來的下方空間）會露出
-## 底下的東西，畫面上看起來是灰色，使用者回報看起來像沒排版好。
-## 一開始把黑色 ColorRect 塞在 register 節點的父層（例如 BoardLayer）裡面,
-## 結果整個蓋掉棋盤——因為棋盤格子是 Battle.gd 自己（Node2D）用 _draw()
-## 畫的、不在任何 CanvasLayer 底下,等於停在「最底層」(層級 0);而 BoardLayer
-## 這個 CanvasLayer 預設 layer=1,比層級 0 高,黑色色塊只要跟 PortraitLayout/
-## LandscapeLayout 擠在同一個 CanvasLayer 裡,就會蓋在棋盤畫面上面,不是「只
-## 補那些空隙」。修法：另外開一個獨立的 CanvasLayer,layer 設成負數（-10),
-## 比場景裡任何 CanvasLayer（BoardLayer/PauseLayer/ResultLayer 都 >=1）跟
-## Node2D 本身的層級 0 都還低——這樣黑色色塊永遠墊在最底下,場景裡其他東西
-## 覆蓋得到的地方看不出來,只有真的沒人畫到的空隙才會透出黑色。這個新
-## CanvasLayer 掛在 register 節點的「祖父層」（例如 BoardLayer 的父節點，也
-## 就是 Battle.tscn 的根節點）底下,假設是這份專案一貫的
-## `XxxLayer(CanvasLayer) > PortraitLayout/LandscapeLayout` 排法,同一個祖父
-## 層只需要一塊,用固定節點名稱擋重複呼叫。
+## 讓出來的位置）會露出底下的東西，畫面上看起來是灰色，使用者回報看起來像
+## 沒排版好，要求「只有 safe area 那一條變黑，不是整個背景變黑」。
+## 第一版把黑色 ColorRect 做成滿版鋪整個視窗——結果不只補了空隙，還把整個
+## 背景（本來就沒東西畫的地方，不只是這次平移新露出來的部分）都塗黑，範圍
+## 遠大於使用者要的。改成只畫 4 條跟除錯疊層一樣大小/位置的色塊（上/下/左/
+## 右，剛好等於 top/bottom/left/right 這幾個安全邊距的寬度），其餘地方不動。
+## 另外一個踩坑（跟範圍無關,是疊圖順序)：黑色色塊本來塞在 register 節點的
+## 父層（例如 BoardLayer）裡面,結果蓋掉棋盤——因為棋盤格子是 Battle.gd 自己
+## （Node2D）用 _draw() 畫的、不在任何 CanvasLayer 底下,等於停在「最底層」
+## (層級 0);BoardLayer 這個 CanvasLayer 預設 layer=1,比層級 0 高,色塊只要
+## 跟 PortraitLayout/LandscapeLayout 擠在同一層,就會蓋在棋盤上面。修法：
+## 另外開一個獨立的 CanvasLayer,layer 設成負數（-10),比場景裡任何
+## CanvasLayer 跟 Node2D 本身的層級 0 都還低,色塊永遠墊在最底下,只有真的
+## 沒人畫到的空隙才會透出黑色。這個新 CanvasLayer 掛在 register 節點的
+## 「祖父層」（例如 BoardLayer 的父節點，也就是 Battle.tscn 的根節點）底下,
+## 假設是這份專案一貫的 `XxxLayer(CanvasLayer) > PortraitLayout/
+## LandscapeLayout` 排法,同一個祖父層只需要一塊,用固定節點名稱擋重複呼叫。
 const _BACKDROP_NAME := "__SafeAreaBackdrop"
 
 func _ensure_backdrop(control: Control) -> void:
@@ -113,16 +116,44 @@ func _ensure_backdrop(control: Control) -> void:
 	backdrop_layer.layer = -10
 	host.add_child(backdrop_layer)
 	host.move_child(backdrop_layer, 0)
-	var rect := ColorRect.new()
-	rect.color = Color.BLACK
-	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop_layer.add_child(rect)
+	for i in range(4):
+		var rect := ColorRect.new()
+		rect.color = Color.BLACK
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		backdrop_layer.add_child(rect)
+	_backdrop_layers.append(backdrop_layer)
+	_position_edge_strips(backdrop_layer.get_children())
 
 func _apply_registered_controls() -> void:
 	_registered_controls = _registered_controls.filter(func(c): return is_instance_valid(c))
 	for control in _registered_controls:
 		_position_control(control)
+	_backdrop_layers = _backdrop_layers.filter(func(l): return is_instance_valid(l))
+	for backdrop_layer in _backdrop_layers:
+		_position_edge_strips(backdrop_layer.get_children())
+
+## 除錯疊層跟正式黑邊背景都是「4 個色塊各自貼齊上/下/左/右邊、厚度等於
+## 對應的安全邊距」，共用同一份定位邏輯，不要維護兩份。傳進來的 rects 順序
+## 固定是 [上, 下, 左, 右]（_build_debug_overlay()/_ensure_backdrop() 建立
+## 的順序都一樣）。
+func _position_edge_strips(rects: Array) -> void:
+	if rects.size() != 4:
+		return
+	var top_rect: ColorRect = rects[0]
+	top_rect.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top_rect.offset_bottom = top
+
+	var bottom_rect: ColorRect = rects[1]
+	bottom_rect.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom_rect.offset_top = -bottom
+
+	var left_rect: ColorRect = rects[2]
+	left_rect.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	left_rect.offset_right = left
+
+	var right_rect: ColorRect = rects[3]
+	right_rect.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
+	right_rect.offset_left = -right
 
 ## 只平移、不改尺寸——理由見檔案開頭的說明。假設 control 錨點是 (0,0,0,0)
 ## （這幾份版面的根節點本來就是這樣，見 BattleLayoutPortrait/Landscape.tscn），
@@ -170,22 +201,7 @@ func _update_debug_overlay(window_size: Vector2) -> void:
 	for child in _debug_layer.get_children():
 		if child is ColorRect:
 			rects.append(child)
-	if rects.size() == 4:
-		var top_rect: ColorRect = rects[0]
-		top_rect.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-		top_rect.offset_bottom = top
-
-		var bottom_rect: ColorRect = rects[1]
-		bottom_rect.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		bottom_rect.offset_top = -bottom
-
-		var left_rect: ColorRect = rects[2]
-		left_rect.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
-		left_rect.offset_right = left
-
-		var right_rect: ColorRect = rects[3]
-		right_rect.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-		right_rect.offset_left = -right
+	_position_edge_strips(rects)
 
 	var safe_w := window_size.x - left - right
 	var safe_h := window_size.y - top - bottom

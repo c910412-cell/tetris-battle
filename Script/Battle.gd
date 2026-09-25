@@ -89,13 +89,15 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var countdown_label_portrait: Label = portrait_layout.find_child("CountdownLabel", true, false) as Label
 @onready var countdown_label_landscape: Label = landscape_layout.find_child("CountdownLabel", true, false) as Label
 @onready var board_anchor_portrait: Control = portrait_layout.find_child("BoardAnchor", true, false) as Control
-@onready var hold_panel_portrait: Control = portrait_layout.find_child("HoldPanel", true, false) as Control
-@onready var next_panel_portrait: Control = portrait_layout.find_child("NextPanel", true, false) as Control
+## 2026-09-25：型別改成 MiniPiecePanel（見該檔案說明）,讓使用者自己調
+## HOLD/NEXT 縮圖方塊的大小/位置,不再是純 Control。
+@onready var hold_panel_portrait: MiniPiecePanel = portrait_layout.find_child("HoldPanel", true, false) as MiniPiecePanel
+@onready var next_panel_portrait: MiniPiecePanel = portrait_layout.find_child("NextPanel", true, false) as MiniPiecePanel
 @onready var settlement_bar_portrait: Control = portrait_layout.find_child("SettlementBar", true, false) as Control
 @onready var pending_dots_anchor_portrait: PendingDotsAnchor = portrait_layout.find_child("PendingDotsAnchor", true, false) as PendingDotsAnchor
 @onready var board_anchor_landscape: Control = landscape_layout.find_child("BoardAnchor", true, false) as Control
-@onready var hold_panel_landscape: Control = landscape_layout.find_child("HoldPanel", true, false) as Control
-@onready var next_panel_landscape: Control = landscape_layout.find_child("NextPanel", true, false) as Control
+@onready var hold_panel_landscape: MiniPiecePanel = landscape_layout.find_child("HoldPanel", true, false) as MiniPiecePanel
+@onready var next_panel_landscape: MiniPiecePanel = landscape_layout.find_child("NextPanel", true, false) as MiniPiecePanel
 @onready var settlement_bar_landscape: Control = landscape_layout.find_child("SettlementBar", true, false) as Control
 @onready var pending_dots_anchor_landscape: PendingDotsAnchor = landscape_layout.find_child("PendingDotsAnchor", true, false) as PendingDotsAnchor
 
@@ -1014,10 +1016,10 @@ func _on_continue_progress_updated(confirmed: int, total: int) -> void:
 func _active_board_anchor() -> Control:
 	return board_anchor_portrait if portrait_layout.visible else board_anchor_landscape
 
-func _active_hold_panel() -> Control:
+func _active_hold_panel() -> MiniPiecePanel:
 	return hold_panel_portrait if portrait_layout.visible else hold_panel_landscape
 
-func _active_next_panel() -> Control:
+func _active_next_panel() -> MiniPiecePanel:
 	return next_panel_portrait if portrait_layout.visible else next_panel_landscape
 
 func _active_settlement_bar() -> Control:
@@ -1059,11 +1061,11 @@ func _draw() -> void:
 	var next_panel := _active_next_panel()
 	var hold_rect := Rect2(hold_panel.global_position, TetrisBoardRenderer.effective_size(hold_panel))
 	var next_rect := Rect2(next_panel.global_position, TetrisBoardRenderer.effective_size(next_panel))
-	TetrisBoardRenderer.draw_side_panel(self, hold_rect, controller.get_hold_type())
+	TetrisBoardRenderer.draw_side_panel(self, hold_rect, controller.get_hold_type(), hold_panel.mini_cell_size, hold_panel.center_offset)
 	TetrisBoardRenderer.draw_side_panel_bg(self, next_rect)
 	var upcoming := controller.peek_next_pieces(1)
 	if not upcoming.is_empty():
-		TetrisBoardRenderer.draw_mini_piece(self, next_rect, upcoming[0])
+		TetrisBoardRenderer.draw_mini_piece(self, next_rect, upcoming[0], next_panel.mini_cell_size, next_panel.center_offset)
 
 	## Y 座標改成從 _board_origin/_cell_size 現算（鎖定在最下面那個可視行的
 	## 上下正中間），不要直接讀 PendingDotsAnchor 節點的固定座標——這樣

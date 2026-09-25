@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://Image/hold.png" id="8"]
 [ext_resource type="Script" path="res://Script/TetrisGestureZone.gd" id="9"]
 [ext_resource type="Script" path="res://Script/TetrisGestureMoveZone.gd" id="10"]
+[ext_resource type="Script" uid="uid://dog2iujvkxrdq" path="res://Script/MiniPiecePanel.gd" id="11_minipiece"]
 
 [sub_resource type="StyleBoxFlat" id="BoardSettingsButtonStyle"]
 bg_color = Color(0.06879827, 0.06879828, 0.06879828, 0.7)
@@ -63,6 +64,7 @@ offset_left = 590.0
 offset_top = 54.0
 offset_right = 710.0
 offset_bottom = 174.0
+script = ExtResource("11_minipiece")
 
 [node name="Placeholder" type="ReferenceRect" parent="HoldPanel"]
 anchor_right = 1.0
@@ -85,6 +87,7 @@ offset_left = 1210.0
 offset_top = 54.0
 offset_right = 1330.0
 offset_bottom = 174.0
+script = ExtResource("11_minipiece")
 
 [node name="Placeholder" type="ReferenceRect" parent="NextPanel"]
 anchor_right = 1.0

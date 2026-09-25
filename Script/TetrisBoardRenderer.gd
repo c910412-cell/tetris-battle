@@ -84,15 +84,17 @@ static func draw_side_panel_bg(ci: CanvasItem, rect: Rect2) -> void:
 	ci.draw_rect(rect, Color(0.12, 0.12, 0.16), true)
 	ci.draw_rect(rect, Color(0.3, 0.3, 0.35), false, 2.0)
 
-static func draw_side_panel(ci: CanvasItem, rect: Rect2, type: int) -> void:
+static func draw_side_panel(ci: CanvasItem, rect: Rect2, type: int, mini_cell: float = 16.0, center_offset: Vector2 = Vector2.ZERO) -> void:
 	draw_side_panel_bg(ci, rect)
 	if type >= 0:
-		draw_mini_piece(ci, rect, type)
+		draw_mini_piece(ci, rect, type, mini_cell, center_offset)
 
-static func draw_mini_piece(ci: CanvasItem, rect: Rect2, type: int) -> void:
-	var mini_cell := 16.0
+## mini_cell/center_offset 2026-09-25 從寫死改成參數——呼叫端（Battle.gd）從
+## HoldPanel/NextPanel 節點上的 MiniPiecePanel.gd 讀使用者自己調好的值傳
+## 進來，不在這裡重複畫圖邏輯。
+static func draw_mini_piece(ci: CanvasItem, rect: Rect2, type: int, mini_cell: float = 16.0, center_offset: Vector2 = Vector2.ZERO) -> void:
 	var cells := TetrisPieceData.get_cells(type as TetrisPieceData.PieceType, 0)
-	var origin := rect.position + rect.size / 2.0 - Vector2(mini_cell * 2, mini_cell * 2)
+	var origin := rect.position + rect.size / 2.0 + center_offset - Vector2(mini_cell * 2, mini_cell * 2)
 	var color: Color = TetrisPieceData.COLORS[type]
 	for c in cells:
 		var pos := origin + Vector2(c.x, c.y) * mini_cell

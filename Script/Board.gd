@@ -57,11 +57,13 @@ const HIGH_SCORE_SAVE_PATH := "user://endless_high_score.json"
 ## 底下（讓它們「跟著盤面走」），不管巢狀幾層都找得到，不會因為重新掛父
 ## 節點就 null 掉（見 Battle.gd 同樣的處理，那邊已經因為這個原因斷過兩次）。
 @onready var board_anchor_portrait: Control = portrait_layout.find_child("BoardAnchor", true, false) as Control
-@onready var hold_panel_portrait: Control = portrait_layout.find_child("HoldPanel", true, false) as Control
-@onready var next_panel_portrait: Control = portrait_layout.find_child("NextPanel", true, false) as Control
+## 2026-09-25：型別改成 MiniPiecePanel，讓使用者自己調 HOLD/NEXT 縮圖方塊的
+## 大小/位置，見該檔案說明。
+@onready var hold_panel_portrait: MiniPiecePanel = portrait_layout.find_child("HoldPanel", true, false) as MiniPiecePanel
+@onready var next_panel_portrait: MiniPiecePanel = portrait_layout.find_child("NextPanel", true, false) as MiniPiecePanel
 @onready var board_anchor_landscape: Control = landscape_layout.find_child("BoardAnchor", true, false) as Control
-@onready var hold_panel_landscape: Control = landscape_layout.find_child("HoldPanel", true, false) as Control
-@onready var next_panel_landscape: Control = landscape_layout.find_child("NextPanel", true, false) as Control
+@onready var hold_panel_landscape: MiniPiecePanel = landscape_layout.find_child("HoldPanel", true, false) as MiniPiecePanel
+@onready var next_panel_landscape: MiniPiecePanel = landscape_layout.find_child("NextPanel", true, false) as MiniPiecePanel
 
 ## 手勢操作開關（PlayerSettings.gesture_controls_enabled）：開啟時這六顆按鈕
 ## 隱藏，改用 GestureZone（右側：滑動旋轉/到底＋雙擊 hold）/MoveGestureZone
@@ -343,10 +345,10 @@ func _on_return_pressed() -> void:
 func _active_board_anchor() -> Control:
 	return board_anchor_portrait if portrait_layout.visible else board_anchor_landscape
 
-func _active_hold_panel() -> Control:
+func _active_hold_panel() -> MiniPiecePanel:
 	return hold_panel_portrait if portrait_layout.visible else hold_panel_landscape
 
-func _active_next_panel() -> Control:
+func _active_next_panel() -> MiniPiecePanel:
 	return next_panel_portrait if portrait_layout.visible else next_panel_landscape
 
 ## 畫圖邏輯抽到 TetrisBoardRenderer.gd 共用（Battle.gd 對戰畫面也會用同一份），
@@ -373,8 +375,8 @@ func _draw() -> void:
 
 	var hold_rect := Rect2(hold_panel.global_position, TetrisBoardRenderer.effective_size(hold_panel))
 	var next_rect := Rect2(next_panel.global_position, TetrisBoardRenderer.effective_size(next_panel))
-	TetrisBoardRenderer.draw_side_panel(self, hold_rect, _controller.get_hold_type())
+	TetrisBoardRenderer.draw_side_panel(self, hold_rect, _controller.get_hold_type(), hold_panel.mini_cell_size, hold_panel.center_offset)
 	TetrisBoardRenderer.draw_side_panel_bg(self, next_rect)
 	var upcoming := _controller.peek_next_pieces(1)
 	if not upcoming.is_empty():
-		TetrisBoardRenderer.draw_mini_piece(self, next_rect, upcoming[0])
+		TetrisBoardRenderer.draw_mini_piece(self, next_rect, upcoming[0], next_panel.mini_cell_size, next_panel.center_offset)
