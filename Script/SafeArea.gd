@@ -78,9 +78,46 @@ func _on_player_settings_changed() -> void:
 ## 呼叫端不用自己接 safe_area_changed。節點被 queue_free() 之後會在下一次
 ## 重算時自動從清單裡濾掉，不用手動取消註冊。
 func register_control(control: Control) -> void:
+	_ensure_backdrop(control)
 	if control not in _registered_controls:
 		_registered_controls.append(control)
 	_position_control(control)
+
+## 2026-09-25 新增：整份版面平移之後，原本被版面蓋住的那塊（上方/左側被推開
+## 讓出來的位置，或是比 1080x1920 基準還長的螢幕多出來的下方空間）會露出
+## 底下的東西，畫面上看起來是灰色，使用者回報看起來像沒排版好。
+## 一開始把黑色 ColorRect 塞在 register 節點的父層（例如 BoardLayer）裡面,
+## 結果整個蓋掉棋盤——因為棋盤格子是 Battle.gd 自己（Node2D）用 _draw()
+## 畫的、不在任何 CanvasLayer 底下,等於停在「最底層」(層級 0);而 BoardLayer
+## 這個 CanvasLayer 預設 layer=1,比層級 0 高,黑色色塊只要跟 PortraitLayout/
+## LandscapeLayout 擠在同一個 CanvasLayer 裡,就會蓋在棋盤畫面上面,不是「只
+## 補那些空隙」。修法：另外開一個獨立的 CanvasLayer,layer 設成負數（-10),
+## 比場景裡任何 CanvasLayer（BoardLayer/PauseLayer/ResultLayer 都 >=1）跟
+## Node2D 本身的層級 0 都還低——這樣黑色色塊永遠墊在最底下,場景裡其他東西
+## 覆蓋得到的地方看不出來,只有真的沒人畫到的空隙才會透出黑色。這個新
+## CanvasLayer 掛在 register 節點的「祖父層」（例如 BoardLayer 的父節點，也
+## 就是 Battle.tscn 的根節點）底下,假設是這份專案一貫的
+## `XxxLayer(CanvasLayer) > PortraitLayout/LandscapeLayout` 排法,同一個祖父
+## 層只需要一塊,用固定節點名稱擋重複呼叫。
+const _BACKDROP_NAME := "__SafeAreaBackdrop"
+
+func _ensure_backdrop(control: Control) -> void:
+	var parent := control.get_parent()
+	if parent == null:
+		return
+	var host := parent.get_parent()
+	if host == null or host.has_node(_BACKDROP_NAME):
+		return
+	var backdrop_layer := CanvasLayer.new()
+	backdrop_layer.name = _BACKDROP_NAME
+	backdrop_layer.layer = -10
+	host.add_child(backdrop_layer)
+	host.move_child(backdrop_layer, 0)
+	var rect := ColorRect.new()
+	rect.color = Color.BLACK
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop_layer.add_child(rect)
 
 func _apply_registered_controls() -> void:
 	_registered_controls = _registered_controls.filter(func(c): return is_instance_valid(c))
