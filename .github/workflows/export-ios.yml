@@ -37,6 +37,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Bump iOS build number
+        # 每次不管改沒改版號都用同一個 "1.0",AltStore/iOS 有時候會把它當
+        # 「同一個版本」而不完整替換舊的 .app,side load 完看起來像是根本
+        # 沒換到新的 build（改了程式碼/資源結果手機上還是舊的）。這裡把
+        # CFBundleVersion（Godot 匯出設定裡的 application/version）換成
+        # 這次 workflow run 的流水號,保證每次側裝都是「新版本」,iOS 一定
+        # 會整包换掉。CFBundleShortVersionString（application/short_version,
+        # 使用者看到的「1.0」）不動。
+        run: |
+          set -euo pipefail
+          sed -i.bak "s/^application\/version=\".*\"/application\/version=\"${GITHUB_RUN_NUMBER}\"/" export_presets.cfg
+          rm -f export_presets.cfg.bak
+          grep "application/version=" export_presets.cfg
+
       - name: Cache Godot editor + export templates
         id: godot-cache
         uses: actions/cache@v4
@@ -77,6 +91,22 @@ jobs:
         run: |
           set -euo pipefail
           "${GODOT_BIN}" --headless --path . --import
+
+      - name: Verify custom CJK font actually imported
+        # 之前中文字型在 iOS 上顯示亂碼,懷疑是這個 15MB 的 .otf 在
+        # headless import 這步靜靜失敗(Godot 不一定會讓整個 import 指令
+        # 回傳非 0,失敗有可能被吃掉),下一步 export 照樣「成功」但其實
+        # 缺了字型、退回沒有中文字的內建字型。這裡直接檢查匯入後的快取
+        # 檔案有沒有真的生成,沒有就讓整個 workflow 失敗,而不是生出一個
+        # 看起來成功、實際上還是亂碼的 .ipa。
+        run: |
+          set -euo pipefail
+          if ! find .godot/imported -iname "GenSenRounded2TW-B.otf-*.fontdata" | grep -q .; then
+            echo "::error::自訂中文字型沒有被匯入成功(.godot/imported 裡找不到 GenSenRounded2TW-B 的 .fontdata),中文字在手機上會變亂碼。"
+            exit 1
+          fi
+          echo "字型匯入確認 OK："
+          find .godot/imported -iname "GenSenRounded2TW-B.otf-*.fontdata"
 
       - name: Export Xcode project from Godot
         # export_presets.cfg 的 iOS preset 已經設成
