@@ -128,9 +128,20 @@ const COUNTDOWN_SECONDS := 3.0
 @onready var move_gesture_zone_landscape: Control = $BoardLayer/LandscapeLayout/MoveGestureZone
 @onready var hold_button_landscape: Control = $BoardLayer/LandscapeLayout/HoldButton
 
-## 2026-09-25 使用者自己加的底部裝飾色塊——目前只有直向版有這個節點。跟
-## 操控按鈕一樣要「拆開」不要跟著 safe area 平移（見下面 exempt_from_
-## translation 那段的說明）。
+## 2026-09-25 使用者自己加的底部裝飾色塊——目前只有直向版有這個節點。
+## 2026-09-26：改成每幀由 _draw() 直接把它的 global_position.y 釘在
+## 「棋盤實際畫出來的下緣 + BOTTOM_DECORATION_GAP_PX」（見
+## _position_bottom_decoration()）——之前用「跟棋盤同一組 anchor」或
+## 「掛到 BoardAnchor/GarbageBarAnchor 底下當子節點」都試過，在編輯器裡
+## 對得上，換一台長寬比不同的手機還是會蓋到棋盤（棋盤實際畫出來的範圍是
+## _draw() 用 min(寬/10, 高/20) 算出來的 cell_size，不是 anchor 節點的
+## rect 本身——兩者只有在剛好卡准 10:20 比例時才會相等，一般裝置對不上，
+## anchor 再怎麼調都只是碰運氣）；「掛到 BoardAnchor 底下」那次還讓這裡
+## 的 onready 節點路徑對不到、噴 null 參照的錯誤。改成直接讀
+## _board_origin／_cell_size（跟 GarbageBarAnchor／SettlementBar 同一套
+## 「不信任 anchor、只信任實際算出來的棋盤範圍」原則）之後，這個節點在
+## 場景裡的寬度/縮放/顏色使用者要怎麼調都可以，垂直位置永遠保證不會蓋到。
+const BOTTOM_DECORATION_GAP_PX := 25.0
 @onready var color_rect_bottom_portrait: Control = $BoardLayer/PortraitLayout/ColorRectbottom
 
 ## 對手縮小盤面依人數（1~3）分開排版，見上方檔案說明。索引 0=1 人、1=2 人、
@@ -243,11 +254,6 @@ var _round_transition_flash_row: int = 0
 ## bo-N 戰績：team_index -> 已經贏的回合數，整場比賽期間持續累加（跨回合
 ## 不歸零，只有整場比賽結束、返回大廳才會消失）。
 var _team_round_wins: Dictionary = {}
-## 2026-09-25 使用者要求分隊文字跟分數/消行/等級這些 HUD 文字都用粗體——
-## Godot 的 Label 沒有內建「粗體」開關，用 FontVariation 包住原本的預設字型
-## 加一點 embolden（假粗體，不用另外準備粗體字型檔），一份共用給所有需要
-## 粗體的 Label 用，不用每個 Label 各自 new 一份。
-var _bold_font: FontVariation
 ## true＝結果畫面按下去要進下一輪；false＝已經整場結束，按下去回大廳。
 var _pending_next_round: bool = false
 
@@ -276,12 +282,6 @@ var _leave_votes: Dictionary = {}
 func _ready() -> void:
 	_local_peer_id = multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
 	_team_round_wins.clear()
-	_bold_font = FontVariation.new()
-	_bold_font.base_font = ThemeDB.fallback_font
-	_bold_font.variation_embolden = 1.2
-	for label in [score_label_portrait, score_label_landscape, lines_label_portrait,
-			lines_label_landscape, level_label_portrait, level_label_landscape]:
-		label.add_theme_font_override("font", _bold_font)
 	SoundEffects.connect_button(return_button_portrait)
 	SoundEffects.connect_button(return_button_landscape)
 	return_button_portrait.pressed.connect(_on_result_button_pressed)
@@ -308,10 +308,10 @@ func _ready() -> void:
 			hard_drop_button_landscape, move_left_button_landscape, move_right_button_landscape,
 			soft_drop_button_landscape, hold_button_landscape]:
 		SafeArea.exempt_from_translation(button)
-	## 使用者自己加的底部裝飾色塊也要求「拆開」，理由跟上面操控按鈕一樣——
-	## 貼齊螢幕最下緣的東西不該因為上方的瀏海留白就跟著往下推,那樣反而可能
-	## 被推出畫面或跟底部手勢列打架。
-	SafeArea.exempt_from_translation(color_rect_bottom_portrait)
+	## 底部裝飾色塊 2026-09-26 改成每幀在 _draw()／_position_bottom_
+	## decoration() 裡直接算 global_position.y,不再用 exempt_from_
+	## translation()——理由見上面 color_rect_bottom_portrait 宣告處的說明,
+	## 兩套機制搶著設同一個 position 只會互相打架,改成只有一個權威來源。
 	## 2026-09-25 新增：暫停/結算這兩層覆蓋畫面（BattlePause/ResultLayout*.tscn）
 	## 也是「固定 1080x1920 基準尺寸、絕對像素排版」，跟 BoardLayer 同一種
 	## 排版方式，一樣用 register_control()（整塊平移），不是選單畫面那種
@@ -1129,6 +1129,7 @@ func _draw() -> void:
 	var board_effective_size := TetrisBoardRenderer.effective_size(board_anchor)
 	_cell_size = maxf(minf(board_effective_size.x / TetrisBoard.WIDTH, board_effective_size.y / TetrisBoard.VISIBLE_HEIGHT), 8.0)
 	_board_origin = board_anchor.global_position
+	_position_bottom_decoration()
 
 	TetrisBoardRenderer.draw_board_frame(self, _board_origin, _cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, controller.board, _board_origin, _cell_size, controller.get_clearing_rows())
@@ -1163,6 +1164,18 @@ func _draw() -> void:
 ## （20 行封頂,理由跟舊版點點的上限一樣）當填滿比例,填滿顏色用
 ## TetrisPieceData.GARBAGE_COLOR——待定的行結算之後就會變成這個顏色的垃圾行,
 ## 提前用同一個顏色讓玩家直覺對得起來。
+## 見 color_rect_bottom_portrait 宣告處的說明——這個節點的寬度/縮放/顏色
+## 使用者在編輯器裡自己調,這裡只管垂直位置:把它的 global_position.y 釘在
+## 棋盤實際畫出來的下緣（_board_origin.y + _cell_size*VISIBLE_HEIGHT）再加
+## 一段固定間距,不管使用者怎麼調它自己的 anchor/scale,都保證不會蓋到棋盤。
+## Control 預設 pivot_offset=(0,0),縮放是從 position 這個角落往外撐,所以
+## 直接設 global_position.y 就能精準釘住視覺上緣,不用管 scale 多大。
+func _position_bottom_decoration() -> void:
+	if not portrait_layout.visible:
+		return
+	var board_bottom_y := _board_origin.y + _cell_size * TetrisBoard.VISIBLE_HEIGHT
+	color_rect_bottom_portrait.global_position.y = board_bottom_y + BOTTOM_DECORATION_GAP_PX
+
 func _draw_pending_garbage_bar() -> void:
 	var anchor := _active_garbage_bar_anchor()
 	var bar_width := TetrisBoardRenderer.effective_size(anchor).x

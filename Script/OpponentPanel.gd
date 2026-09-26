@@ -29,6 +29,11 @@ extends Control
 ## 場景裡兩個節點都有放，純粹避免哪天節點被誤刪時整個 _draw() 直接壞掉）。
 const FALLBACK_LABEL_HEIGHT := 20.0
 const FALLBACK_BAR_WIDTH := 8.0
+## 2026-09-26 使用者要求：名字太長被切掉,改成自動縮小字體讓整個名字塞得下,
+## 不要裁切/省略號——縮小的上限（也就是名字夠短時維持的大小）是使用者在
+## 編輯器裡對 NameLabel 設定的字體大小,_ready() 快取這個原始值,之後只會
+## 往下縮,不會放大。
+const MIN_NAME_FONT_SIZE := 10.0
 
 ## 由 Battle.gd 在 instantiate 之後立刻設定，設定好才會有東西可畫。
 var participant: BattleParticipant
@@ -41,6 +46,8 @@ var is_target: bool = false
 ## 就好，不用每幀 find_child()。
 var _name_label: Label
 var _garbage_bar_anchor: Control
+## NameLabel 原始（最大）字體大小,_ready() 讀一次使用者在編輯器裡設的值。
+var _base_name_font_size: float = 20.0
 
 ## 點擊/觸控這個面板時發出，Battle.gd 監聽這個訊號呼叫
 ## BattleDirector.set_manual_target()，不用再靠 Battle.gd 自己算全域座標
@@ -52,6 +59,8 @@ func _ready() -> void:
 	var parent := get_parent()
 	_name_label = parent.get_node_or_null("NameLabel") as Label
 	_garbage_bar_anchor = parent.get_node_or_null("GarbageBarAnchor") as Control
+	if _name_label:
+		_base_name_font_size = _name_label.get_theme_font_size("font_size")
 
 func _on_gui_input(event: InputEvent) -> void:
 	var triggered: bool = (event is InputEventScreenTouch and event.pressed) \
@@ -88,6 +97,7 @@ func _draw() -> void:
 	if _name_label:
 		_name_label.position.x = 0.0
 		_name_label.size.x = bar_width + board_size.x
+		_fit_name_label_font(_name_label.size.x)
 
 	TetrisBoardRenderer.draw_board_frame(self, origin, cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, participant.controller.board, origin, cell_size, participant.controller.get_clearing_rows())
@@ -113,6 +123,23 @@ func _draw() -> void:
 
 	if is_target:
 		draw_rect(Rect2(origin, board_size).grow(4.0), Color(1.0, 0.15, 0.15), false, 4.0)
+
+## 見上面 MIN_NAME_FONT_SIZE 的說明——用「原始（最大）字體大小」量一次名字
+## 實際要多寬,塞不下 available_width（呼叫端傳進來的就是「垃圾長條+棋盤
+## 實際寬度」,滿足使用者要求的「名字最寬對齊各自盤面」）就照比例縮小,塞
+## 得下就直接用原始大小,不會因為之前縮小過又忘記還原。縮小後的字體大小是
+## 直接按比例換算、四捨五入成整數字體大小,字型在不同大小的 hinting/取整
+## 不會完全線性,換算完再拿「縮小後的大小」重新量一次實際寬度,超出就再降
+## 一級,保證絕對不會超出 available_width（不只是「理論上差不多」）。
+func _fit_name_label_font(available_width: float) -> void:
+	var font := _name_label.get_theme_font("font")
+	var natural_width := font.get_string_size(_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _base_name_font_size).x
+	var fitted_size := int(_base_name_font_size)
+	if natural_width > available_width and natural_width > 0.0:
+		fitted_size = int(maxf(floor(_base_name_font_size * available_width / natural_width), MIN_NAME_FONT_SIZE))
+		while fitted_size > MIN_NAME_FONT_SIZE and font.get_string_size(_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fitted_size).x > available_width:
+			fitted_size -= 1
+	_name_label.add_theme_font_size_override("font_size", fitted_size)
 
 func _label_text() -> String:
 	var text: String = BattleSettings.AI_LABELS.get(pid, "AI") if BattleSettings.is_ai(pid) else NetworkManager.get_peer_profile_name(pid)
