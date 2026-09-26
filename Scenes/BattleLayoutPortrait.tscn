@@ -431,9 +431,9 @@ border_width = 3.0
 [node name="ScoreLabel" type="Label" parent="." unique_id=2039152864]
 layout_mode = 1
 offset_left = 40.0
-offset_top = 7.0
+offset_top = 12.0
 offset_right = 300.0
-offset_bottom = 62.0
+offset_bottom = 67.0
 theme_override_font_sizes/font_size = 40
 text = "分數: 0"
 
@@ -450,9 +450,9 @@ border_width = 3.0
 [node name="LinesLabel" type="Label" parent="." unique_id=1584307956]
 layout_mode = 1
 offset_left = 311.0
-offset_top = 7.0
+offset_top = 12.0
 offset_right = 571.0
-offset_bottom = 62.0
+offset_bottom = 67.0
 theme_override_font_sizes/font_size = 40
 text = "消行: 0"
 
@@ -469,9 +469,9 @@ border_width = 3.0
 [node name="LevelLabel" type="Label" parent="." unique_id=1893648049]
 layout_mode = 1
 offset_left = 579.0
-offset_top = 7.0
+offset_top = 12.0
 offset_right = 839.0
-offset_bottom = 62.0
+offset_bottom = 67.0
 theme_override_font_sizes/font_size = 40
 text = "等級: 1"
 
@@ -493,21 +493,17 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="ColorRectbottom" type="ColorRect" parent="." unique_id=921255826]
-visible = false
 show_behind_parent = true
 layout_mode = 1
-anchors_preset = 7
+anchors_preset = 5
 anchor_left = 0.5
-anchor_top = 1.0
 anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -548.0
-offset_top = -411.0
-offset_right = -508.0
-offset_bottom = -371.0
+offset_left = -620.0
+offset_top = 1867.0
+offset_right = -580.0
+offset_bottom = 1951.9652
 grow_horizontal = 2
-grow_vertical = 0
-scale = Vector2(27.679998, 11.44)
+scale = Vector2(31.272, 12.795)
 mouse_filter = 2
 color = Color(0.16565639, 0.16565642, 0.16565639, 1)
 
