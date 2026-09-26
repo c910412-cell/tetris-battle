@@ -48,13 +48,17 @@ var _name_label: Label
 var _garbage_bar_anchor: Control
 ## NameLabel 原始（最大）字體大小,_ready() 讀一次使用者在編輯器裡設的值。
 var _base_name_font_size: float = 20.0
-## 2026-09-26：名字縮小之後,「幫棋盤讓出的高度」要跟著縮小才會緊貼棋盤,
-## 不能再用 NameLabel 那個固定不變的 Control 高度（那是照最大字體大小抓的,
-## 名字縮小後底下就會多一截空白）。改成讀「目前字體大小實際的行高」,見
-## _draw() 開頭跟 _fit_name_label_font() 的說明——這裡先快取上一幀縮完的
-## 字體大小,本幀一開始用它抓行高,本幀縮完再更新回來,一兩幀內就會收斂,
-## 不會有肉眼看得出來的延遲。
+## 2026-09-26 使用者回報：改用「NameLabel 固定 Control 高度打折扣」之後,
+## 不同對手人數（OpponentSlots1/2/3,每組的 NameLabel 框高使用者各自設定,
+## 沒有統一）打完折扣還是可能比實際文字高度矮,名字下緣被棋盤蓋住。使用者
+## 明確要求「統一固定在棋盤上方 3px」——這只能用「目前字體大小實際的行高」
+## 才算得準（跟框高完全無關,不管哪組 Slot 都一樣量得到正確答案）,所以這裡
+## 改回讀即時字體大小算行高,棋盤大小會因此隨名字字體縮放有小幅變化（同一
+## 字型行高差距通常只有幾 px,對整體棋盤大小影響很小),換來的是「名字絕對
+## 不會被棋盤蓋住」這個更重要的保證。做法：快取上一幀縮完的字體大小,本幀
+## 開頭用它量行高,本幀縮完再更新回來,一兩幀內收斂,肉眼看不出延遲。
 var _current_name_font_size: float = 20.0
+const NAME_TO_BOARD_GAP_PX := 3.0
 
 ## 點擊/觸控這個面板時發出，Battle.gd 監聽這個訊號呼叫
 ## BattleDirector.set_manual_target()，不用再靠 Battle.gd 自己算全域座標
@@ -86,9 +90,9 @@ func _draw() -> void:
 		## 地方。
 		_name_label.add_theme_color_override("font_color", BattleSettings.TEAM_COLORS[participant.team_index])
 	## 見 _current_name_font_size 宣告處的說明——用「上一幀縮完的字體大小」
-	## 實際量一次行高,不要再用 NameLabel 固定不變的 Control 高度,不然名字
-	## 縮小時底下會多留一截空白,沒辦法緊貼棋盤。
-	var label_height := _name_label.get_theme_font("font").get_height(_current_name_font_size) if _name_label else FALLBACK_LABEL_HEIGHT
+	## 量真正的行高 + 固定 3px,不管對手人數/哪組 Slot 的 NameLabel 框高設多少,
+	## 都保證名字下緣到棋盤上緣一定剛好 3px,不會被蓋住。
+	var label_height := _name_label.get_theme_font("font").get_height(_current_name_font_size) + NAME_TO_BOARD_GAP_PX if _name_label else FALLBACK_LABEL_HEIGHT
 	var bar_width := TetrisBoardRenderer.effective_size(_garbage_bar_anchor).x if _garbage_bar_anchor else FALLBACK_BAR_WIDTH
 
 	var origin := Vector2(bar_width, label_height)
@@ -118,8 +122,8 @@ func _draw() -> void:
 		_name_label.clip_text = true
 		var target_width := bar_width + board_size.x
 		_current_name_font_size = _fit_name_label_font(target_width)
-		_name_label.position = Vector2.ZERO
-		_name_label.size = Vector2(target_width, label_height)
+		_name_label.position.x = 0.0
+		_name_label.size.x = target_width
 
 	TetrisBoardRenderer.draw_board_frame(self, origin, cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, participant.controller.board, origin, cell_size, participant.controller.get_clearing_rows())
@@ -153,8 +157,8 @@ func _draw() -> void:
 ## 直接按比例換算、四捨五入成整數字體大小,字型在不同大小的 hinting/取整
 ## 不會完全線性,換算完再拿「縮小後的大小」重新量一次實際寬度,超出就再降
 ## 一級,保證絕對不會超出 available_width（不只是「理論上差不多」）。回傳
-## 縮完的字體大小給呼叫端存起來,下一幀用來算「緊貼棋盤」要讓出多少高度
-## （見 _current_name_font_size 宣告處的說明）。
+## 縮完的字體大小給呼叫端存起來,下一幀量行高用（見 _current_name_font_size
+## 宣告處的說明）。
 func _fit_name_label_font(available_width: float) -> float:
 	var font := _name_label.get_theme_font("font")
 	var natural_width := font.get_string_size(_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _base_name_font_size).x
