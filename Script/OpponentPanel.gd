@@ -48,6 +48,13 @@ var _name_label: Label
 var _garbage_bar_anchor: Control
 ## NameLabel 原始（最大）字體大小,_ready() 讀一次使用者在編輯器裡設的值。
 var _base_name_font_size: float = 20.0
+## 2026-09-26：名字縮小之後,「幫棋盤讓出的高度」要跟著縮小才會緊貼棋盤,
+## 不能再用 NameLabel 那個固定不變的 Control 高度（那是照最大字體大小抓的,
+## 名字縮小後底下就會多一截空白）。改成讀「目前字體大小實際的行高」,見
+## _draw() 開頭跟 _fit_name_label_font() 的說明——這裡先快取上一幀縮完的
+## 字體大小,本幀一開始用它抓行高,本幀縮完再更新回來,一兩幀內就會收斂,
+## 不會有肉眼看得出來的延遲。
+var _current_name_font_size: float = 20.0
 
 ## 點擊/觸控這個面板時發出，Battle.gd 監聽這個訊號呼叫
 ## BattleDirector.set_manual_target()，不用再靠 Battle.gd 自己算全域座標
@@ -61,6 +68,7 @@ func _ready() -> void:
 	_garbage_bar_anchor = parent.get_node_or_null("GarbageBarAnchor") as Control
 	if _name_label:
 		_base_name_font_size = _name_label.get_theme_font_size("font_size")
+		_current_name_font_size = _base_name_font_size
 
 func _on_gui_input(event: InputEvent) -> void:
 	var triggered: bool = (event is InputEventScreenTouch and event.pressed) \
@@ -77,7 +85,10 @@ func _draw() -> void:
 		## 戰績文字共用同一份 BattleSettings.TEAM_COLORS，顏色定義只放一個
 		## 地方。
 		_name_label.add_theme_color_override("font_color", BattleSettings.TEAM_COLORS[participant.team_index])
-	var label_height := TetrisBoardRenderer.effective_size(_name_label).y if _name_label else FALLBACK_LABEL_HEIGHT
+	## 見 _current_name_font_size 宣告處的說明——用「上一幀縮完的字體大小」
+	## 實際量一次行高,不要再用 NameLabel 固定不變的 Control 高度,不然名字
+	## 縮小時底下會多留一截空白,沒辦法緊貼棋盤。
+	var label_height := _name_label.get_theme_font("font").get_height(_current_name_font_size) if _name_label else FALLBACK_LABEL_HEIGHT
 	var bar_width := TetrisBoardRenderer.effective_size(_garbage_bar_anchor).x if _garbage_bar_anchor else FALLBACK_BAR_WIDTH
 
 	var origin := Vector2(bar_width, label_height)
@@ -95,9 +106,20 @@ func _draw() -> void:
 	## CENTER 對齊就一定準——垂直位置/字體大小還是使用者自己在編輯器調的,
 	## 這裡不動。
 	if _name_label:
-		_name_label.position.x = 0.0
-		_name_label.size.x = bar_width + board_size.x
-		_fit_name_label_font(_name_label.size.x)
+		## 2026-09-26 真正抓到的 bug：先設 size.x 再量寬度不會準——Label 沒開
+		## clip_text 時,get_minimum_size() 會用「目前字體大小」量出完整文字
+		## 需要的寬度,Godot 的 Control 會把 size 硬拉回不小於這個最小值,等於
+		## 我這裡想縮小的 size.x 馬上被蓋回去（實測 available_width 量出來
+		## 跟 natural_width 一模一樣,就是被蓋回去的鐵證）。改成先用「棋盤實際
+		## 寬度」（跟 size.x 無關、獨立算出來的 bar_width+board_size.x）決定
+		## 字體大小,字體真的縮小之後,Label 自己的最小寬度也跟著變小,這時候
+		## 再設 size.x 才不會被拉回去。額外開 clip_text 當保險,就算哪天順序
+		## 又被改壞,也只會裁字不會整個爆版。
+		_name_label.clip_text = true
+		var target_width := bar_width + board_size.x
+		_current_name_font_size = _fit_name_label_font(target_width)
+		_name_label.position = Vector2.ZERO
+		_name_label.size = Vector2(target_width, label_height)
 
 	TetrisBoardRenderer.draw_board_frame(self, origin, cell_size)
 	TetrisBoardRenderer.draw_locked_cells(self, participant.controller.board, origin, cell_size, participant.controller.get_clearing_rows())
@@ -130,8 +152,10 @@ func _draw() -> void:
 ## 得下就直接用原始大小,不會因為之前縮小過又忘記還原。縮小後的字體大小是
 ## 直接按比例換算、四捨五入成整數字體大小,字型在不同大小的 hinting/取整
 ## 不會完全線性,換算完再拿「縮小後的大小」重新量一次實際寬度,超出就再降
-## 一級,保證絕對不會超出 available_width（不只是「理論上差不多」）。
-func _fit_name_label_font(available_width: float) -> void:
+## 一級,保證絕對不會超出 available_width（不只是「理論上差不多」）。回傳
+## 縮完的字體大小給呼叫端存起來,下一幀用來算「緊貼棋盤」要讓出多少高度
+## （見 _current_name_font_size 宣告處的說明）。
+func _fit_name_label_font(available_width: float) -> float:
 	var font := _name_label.get_theme_font("font")
 	var natural_width := font.get_string_size(_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _base_name_font_size).x
 	var fitted_size := int(_base_name_font_size)
@@ -140,6 +164,7 @@ func _fit_name_label_font(available_width: float) -> void:
 		while fitted_size > MIN_NAME_FONT_SIZE and font.get_string_size(_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fitted_size).x > available_width:
 			fitted_size -= 1
 	_name_label.add_theme_font_size_override("font_size", fitted_size)
+	return fitted_size
 
 func _label_text() -> String:
 	var text: String = BattleSettings.AI_LABELS.get(pid, "AI") if BattleSettings.is_ai(pid) else NetworkManager.get_peer_profile_name(pid)
